@@ -29,12 +29,12 @@ async def register(request: RegisterRequest, service: ServiceDep) -> UserRespons
     return await handler.register(request, service)
 
 
-@router.post("/login", )
+@router.post("/login")
 async def login(request: LoginRequest, service: ServiceDep) -> TokenPair:
     return await handler.login(request, service)
 
 
-@router.post("/refresh",)
+@router.post("/refresh")
 async def refresh(request: RefreshRequest, service: ServiceDep) -> TokenPair:
     return await handler.refresh(request, service)
 
