@@ -1,15 +1,14 @@
-name: Auto PR to dev
+name: Auto PR to main
 
 on:
   push:
     branches:
       - "**"
       - "!main"
-      - "!dev"
 
 jobs:
   create-pr:
-    name: Create PR → dev
+    name: Create PR → main
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -23,15 +22,15 @@ jobs:
         run: |
           BRANCH="${GITHUB_REF_NAME}"
 
-          EXISTING=$(gh pr list --head "$BRANCH" --base dev --json number --jq length)
+          EXISTING=$(gh pr list --head "$BRANCH" --base main --json number --jq length)
 
           if [ "$EXISTING" -eq 0 ]; then
             gh pr create \
               --head "$BRANCH" \
-              --base dev \
-              --title "merge $BRANCH to dev" \
+              --base main \
+              --title "merge $BRANCH to main" \
               --body "Auto-created PR from branch \`$BRANCH\`"
-            echo "PR created: $BRANCH → dev"
+            echo "PR created: $BRANCH → main"
           else
             echo "PR already exists, skipping"
           fi
