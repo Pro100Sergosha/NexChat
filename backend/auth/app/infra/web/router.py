@@ -1,9 +1,9 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.auth.schemas import (
-    LoginRequest,
     LogoutRequest,
     RefreshRequest,
     RegisterRequest,
@@ -30,8 +30,11 @@ async def register(request: RegisterRequest, service: ServiceDep) -> UserRespons
 
 
 @router.post("/login")
-async def login(request: LoginRequest, service: ServiceDep) -> TokenPair:
-    return await handler.login(request, service)
+async def login(
+    form: Annotated[OAuth2PasswordRequestForm, Depends()],
+    service: ServiceDep,
+) -> TokenPair:
+    return await handler.login(form.username, form.password, service)
 
 
 @router.post("/refresh")

@@ -1,7 +1,8 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.exceptions import TokenExpired, TokenInvalid
@@ -46,15 +47,19 @@ def get_auth_service(
     return AuthService(user_repo, blacklist, tokens, hasher)
 
 
+_oauth2 = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
+
+
 def get_access_token(
-    authorization: Annotated[str | None, Header()] = None,
+    token: Annotated[str | None, Depends(_oauth2)] = None,
 ) -> str:
-    if authorization is None or not authorization.lower().startswith("bearer "):
+    if token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid Authorization header",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    return authorization.split(" ", 1)[1]
+    return token
 
 
 async def get_current_user(

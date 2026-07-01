@@ -2,7 +2,7 @@ from redis.asyncio import Redis
 
 from app.core.auth.repository import TokenBlacklistRepository
 
-_KEY_PREFIX = "bl:"
+_KEY_PREFIX = "blacklist:"
 
 
 class RedisTokenBlacklist(TokenBlacklistRepository):

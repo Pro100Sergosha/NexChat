@@ -1,5 +1,4 @@
 from app.core.auth.schemas import (
-    LoginRequest,
     LogoutRequest,
     RefreshRequest,
     RegisterRequest,
@@ -14,8 +13,8 @@ async def register(request: RegisterRequest, service: AuthService) -> UserRespon
     return UserResponse.model_validate(user)
 
 
-async def login(request: LoginRequest, service: AuthService) -> TokenPair:
-    return await service.login(request.email, request.password)
+async def login(email: str, password: str, service: AuthService) -> TokenPair:
+    return await service.login(email, password)
 
 
 async def refresh(request: RefreshRequest, service: AuthService) -> TokenPair:
