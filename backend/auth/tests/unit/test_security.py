@@ -73,7 +73,9 @@ class TestTokenService:
         self.tokens = TokenService(settings)
 
     def _decode_raw(self, token: str) -> dict:
-        return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.jwt_algorithm])
+        return jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.jwt_algorithm]
+        )
 
     def test_access_token_has_access_type(self):
         claims = self._decode_raw(self.tokens.create_access("user-1"))
@@ -112,7 +114,9 @@ class TestTokenService:
             self.tokens.decode("not-a-jwt")
 
     def test_decode_wrong_signature_raises_invalid(self):
-        forged = jwt.encode({"sub": "x"}, "different-secret", algorithm=settings.jwt_algorithm)
+        forged = jwt.encode(
+            {"sub": "x"}, "different-secret", algorithm=settings.jwt_algorithm
+        )
         with pytest.raises(TokenInvalid):
             self.tokens.decode(forged)
 
@@ -136,7 +140,12 @@ class TestTokenService:
         """decode() only parses/verifies — type enforcement lives in the service."""
         now = datetime.now(UTC)
         typeless = jwt.encode(
-            {"sub": "user-1", "jti": uuid4().hex, "iat": now, "exp": now + timedelta(minutes=5)},
+            {
+                "sub": "user-1",
+                "jti": uuid4().hex,
+                "iat": now,
+                "exp": now + timedelta(minutes=5),
+            },
             settings.JWT_SECRET_KEY,
             algorithm=settings.jwt_algorithm,
         )

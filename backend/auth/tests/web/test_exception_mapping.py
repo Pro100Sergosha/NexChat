@@ -24,13 +24,28 @@ from tests.conftest import assert_error
 
 ERROR_CATALOG = [
     # (exception class name, http status, code, exact message)
-    ("UserAlreadyExists", 409, "user_already_exists", "A user with this email already exists"),
-    ("InvalidCredentials", 401, "invalid_credentials", "Email or password is incorrect"),
+    (
+        "UserAlreadyExists",
+        409,
+        "user_already_exists",
+        "A user with this email already exists",
+    ),
+    (
+        "InvalidCredentials",
+        401,
+        "invalid_credentials",
+        "Email or password is incorrect",
+    ),
     ("UserNotFound", 404, "user_not_found", "User not found"),
     ("TokenInvalid", 401, "token_invalid", "The token is invalid"),
     ("TokenExpired", 401, "token_expired", "The token has expired"),
     ("TokenRevoked", 401, "token_revoked", "The token has been revoked"),
-    ("NotAuthenticated", 401, "not_authenticated", "Authentication credentials were not provided"),
+    (
+        "NotAuthenticated",
+        401,
+        "not_authenticated",
+        "Authentication credentials were not provided",
+    ),
 ]
 
 
@@ -76,7 +91,9 @@ async def raw_client():
 
 
 @pytest.mark.parametrize(("name", "status", "code", "message"), ERROR_CATALOG)
-async def test_domain_exception_maps_to_contract(raw_client, name, status, code, message):
+async def test_domain_exception_maps_to_contract(
+    raw_client, name, status, code, message
+):
     resp = await raw_client.get(f"/boom/{name}")
     assert_error(resp, status, code)
     assert resp.json()["message"] == message

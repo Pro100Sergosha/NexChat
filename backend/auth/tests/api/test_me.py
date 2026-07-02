@@ -5,7 +5,13 @@
   (e.g. token_expired → try /refresh, token_revoked → force re-login).
 """
 
-from tests.conftest import assert_error, auth_headers, login_tokens, make_token, make_user
+from tests.conftest import (
+    assert_error,
+    auth_headers,
+    login_tokens,
+    make_token,
+    make_user,
+)
 
 # ---------------------------------------------------------------------------
 # success

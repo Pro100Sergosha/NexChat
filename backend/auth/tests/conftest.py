@@ -61,9 +61,7 @@ class InMemoryUserRepository(UserRepository):
         return user
 
     async def get_by_email(self, email: str) -> User | None:
-        return next(
-            (u for u in self._by_id.values() if u.email == email), None
-        )
+        return next((u for u in self._by_id.values() if u.email == email), None)
 
     async def get_by_id(self, user_id: UUID) -> User | None:
         return self._by_id.get(user_id)
@@ -127,7 +125,9 @@ async def make_user(
     password: str = "password123",
 ) -> tuple[User, str]:
     """Insert a user with a real bcrypt hash; return (user, plaintext_password)."""
-    orm = UserORM(id=uuid4(), email=email, hashed_password=PasswordHasher().hash(password))
+    orm = UserORM(
+        id=uuid4(), email=email, hashed_password=PasswordHasher().hash(password)
+    )
     db.add(orm)
     await db.commit()
     await db.refresh(orm)
@@ -192,7 +192,9 @@ def assert_error(resp: Response, status: int, code: str) -> None:
     The message must be an actual sentence (contains spaces), never a bare
     class name like ``InvalidCredentials`` and never empty.
     """
-    assert resp.status_code == status, f"expected {status}, got {resp.status_code}: {resp.text}"
+    assert resp.status_code == status, (
+        f"expected {status}, got {resp.status_code}: {resp.text}"
+    )
     body = resp.json()
     assert body.get("code") == code, f"expected code={code!r}, got body={body!r}"
     message = body.get("message")
