@@ -42,10 +42,10 @@ class _RedisStub:
     def __init__(self) -> None:
         self.store: dict[str, tuple[str, int]] = {}
 
-    async def set(self, key: str, value: str, ex: int | None = None) -> None:
+    def set(self, key: str, value: str, ex: int | None = None) -> None:
         self.store[key] = (value, ex)
 
-    async def exists(self, key: str) -> int:
+    def exists(self, key: str) -> int:
         return 1 if key in self.store else 0
 
 

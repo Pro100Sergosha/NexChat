@@ -68,20 +68,20 @@ async def test_refresh_with_access_token_rejected(client):
 
 
 async def test_refresh_garbage_token_rejected(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post("/refresh", json={"refresh_token": "not-a-jwt"})
     assert_error(resp, 401, "token_invalid")
 
 
 async def test_refresh_wrong_signature_rejected(client):
-    ac, db, _ = client
+    ac, _, _ = client
     forged = make_token(token_type="refresh", secret="attacker-secret")
     resp = await ac.post("/refresh", json={"refresh_token": forged})
     assert_error(resp, 401, "token_invalid")
 
 
 async def test_refresh_expired_token_rejected(client):
-    ac, db, _ = client
+    ac, _, _ = client
     expired = make_token(token_type="refresh", expires_in=-60)
     resp = await ac.post("/refresh", json={"refresh_token": expired})
     assert_error(resp, 401, "token_expired")
@@ -93,6 +93,6 @@ async def test_refresh_expired_token_rejected(client):
 
 
 async def test_refresh_missing_field_rejected(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post("/refresh", json={})
     assert_error(resp, 422, "validation_error")

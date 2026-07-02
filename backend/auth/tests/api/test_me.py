@@ -35,19 +35,19 @@ async def test_me_returns_current_user(client):
 
 
 async def test_me_without_header_unauthorized(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.get("/me")
     assert_error(resp, 401, "not_authenticated")
 
 
 async def test_me_with_non_bearer_scheme_unauthorized(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.get("/me", headers={"Authorization": "Basic dXNlcjpwYXNz"})
     assert_error(resp, 401, "not_authenticated")
 
 
 async def test_me_with_garbage_token_rejected(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.get("/me", headers=auth_headers("not-a-jwt"))
     assert_error(resp, 401, "token_invalid")
 
@@ -69,7 +69,7 @@ async def test_me_with_refresh_token_rejected(client):
 
 
 async def test_me_with_revoked_access_rejected(client):
-    ac, db, blacklist = client
+    ac, db, _ = client
     tokens = await login_tokens(ac, db)
     await ac.post(
         "/logout",
@@ -82,7 +82,7 @@ async def test_me_with_revoked_access_rejected(client):
 
 async def test_me_with_token_for_deleted_user_rejected(client):
     """Valid signature but the subject no longer exists — token is useless."""
-    ac, db, _ = client
+    ac, _, _ = client
     ghost = make_token(sub="00000000-0000-0000-0000-000000000000")
     resp = await ac.get("/me", headers=auth_headers(ghost))
     assert_error(resp, 401, "token_invalid")

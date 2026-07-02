@@ -13,7 +13,7 @@ from tests.conftest import assert_error, make_user
 
 
 async def test_register_success_returns_201_with_user(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post(
         "/register", json={"email": "new@example.com", "password": "password123"}
     )
@@ -24,7 +24,7 @@ async def test_register_success_returns_201_with_user(client):
 
 
 async def test_register_never_leaks_password_material(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post(
         "/register", json={"email": "new@example.com", "password": "password123"}
     )
@@ -34,7 +34,7 @@ async def test_register_never_leaks_password_material(client):
 
 
 async def test_register_stores_email_lowercase(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post(
         "/register", json={"email": "MiXeD@Example.COM", "password": "password123"}
     )
@@ -71,7 +71,7 @@ async def test_register_duplicate_email_is_case_insensitive(client):
 
 
 async def test_register_short_password_rejected_with_explanation(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post(
         "/register", json={"email": "new@example.com", "password": "short"}
     )
@@ -82,7 +82,7 @@ async def test_register_short_password_rejected_with_explanation(client):
 
 
 async def test_register_overlong_password_rejected_with_explanation(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post(
         "/register", json={"email": "new@example.com", "password": "x" * 129}
     )
@@ -93,7 +93,7 @@ async def test_register_overlong_password_rejected_with_explanation(client):
 
 
 async def test_register_invalid_email_rejected_with_explanation(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post(
         "/register", json={"email": "not-an-email", "password": "password123"}
     )
@@ -102,20 +102,20 @@ async def test_register_invalid_email_rejected_with_explanation(client):
 
 
 async def test_register_missing_email_names_the_field(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post("/register", json={"password": "password123"})
     assert_error(resp, 422, "validation_error")
     assert "email" in resp.json()["message"].lower()
 
 
 async def test_register_missing_password_names_the_field(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post("/register", json={"email": "new@example.com"})
     assert_error(resp, 422, "validation_error")
     assert "password" in resp.json()["message"].lower()
 
 
 async def test_register_empty_body_rejected(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post("/register", json={})
     assert_error(resp, 422, "validation_error")

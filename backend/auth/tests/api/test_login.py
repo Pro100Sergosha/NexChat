@@ -53,7 +53,7 @@ async def test_login_wrong_password_unauthorized(client):
 
 
 async def test_login_unknown_user_unauthorized(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post(
         "/login", data={"username": "ghost@example.com", "password": "password123"}
     )
@@ -80,13 +80,13 @@ async def test_login_does_not_reveal_which_field_was_wrong(client):
 
 
 async def test_login_missing_username_rejected(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post("/login", data={"password": "password123"})
     assert_error(resp, 422, "validation_error")
 
 
 async def test_login_missing_password_rejected(client):
-    ac, db, _ = client
+    ac, _, _ = client
     resp = await ac.post("/login", data={"username": "login@example.com"})
     assert_error(resp, 422, "validation_error")
 
