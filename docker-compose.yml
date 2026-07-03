@@ -28,6 +28,33 @@ services:
     networks:
       - nexchat
 
+  chat:
+    build:
+      context: ./backend/chat
+    container_name: nexchat_chat
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    environment:
+      - DATABASE_URL=${CHAT_DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    command: sh -c "uv run alembic upgrade head && uv run uvicorn app.runner.asgi:app --host 0.0.0.0 --port 8001 --reload"
+    volumes:
+      - ./backend/chat/app:/app/app
+    ports:
+      - "8001:8001"
+    networks:
+      - nexchat
+
   postgres:
     image: postgres:16-alpine
     container_name: nexchat_postgres
@@ -43,6 +70,7 @@ services:
       start_period: 10s
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     networks:

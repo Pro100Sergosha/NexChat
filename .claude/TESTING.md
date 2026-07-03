@@ -13,11 +13,24 @@ tests/
   integration/       # infra/*.py against real-ish backends (sqlite, fakes)
   web/              # infra/web/dependables.py, exception→HTTP mapping
   api/              # one file per endpoint, full stack via ASGITransport
+  ws/               # WebSocket services only — one file per concern
+                     # (handshake, message flow, disconnect), full stack
+                     # via a sync TestClient (ASGITransport has no WS support)
 ```
 
 One test file per endpoint under `api/` (`test_register.py`, `test_login.py`,
 ...) — not one monolithic `test_<service>.py`. Each file documents its
-endpoint's contract in a module docstring.
+endpoint's contract in a module docstring. Services with a WebSocket layer
+(chat) follow the same one-file-per-concern rule under `ws/` instead of
+`api/`, since a WS connection isn't a single request/response endpoint.
+
+WS auth/validation failures have no HTTP status or JSON body, so they use
+custom close codes instead of the `{code, message}` contract — pin the
+catalog in the `ws/` module docstrings (chat: 4401 auth, 4403 not
+participant, 4422 bad payload). A handshake rejection closes before
+`.accept()`, so entering the client's `websocket_connect(...)` context
+itself raises `WebSocketDisconnect` — assert on `.code` there rather than
+after a successful connect.
 
 ## Test infra
 
