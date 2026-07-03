@@ -169,9 +169,8 @@ def assert_error(resp: Response, status: int, code: str) -> None:
 def assert_ws_close(client: TestClient, url: str, code: int) -> None:
     """WS handshake rejection: server closes before/at accept, so entering the
     connect context manager itself raises WebSocketDisconnect with the code."""
-    with pytest.raises(WebSocketDisconnect) as exc_info:
-        with client.websocket_connect(url):
-            pass
+    with pytest.raises(WebSocketDisconnect) as exc_info, client.websocket_connect(url):
+        pass
     assert exc_info.value.code == code, (
         f"expected close code {code}, got {exc_info.value.code}"
     )

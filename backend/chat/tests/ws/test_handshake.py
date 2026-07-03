@@ -44,7 +44,9 @@ def test_refresh_token_used_as_access_rejected(ws_client):
 
 def test_multi_device_connections_both_accepted(ws_client):
     token = make_token(sub="user-a")
-    with ws_client.websocket_connect(f"/ws?token={token}") as ws1:
-        with ws_client.websocket_connect(f"/ws?token={token}") as ws2:
-            assert ws1 is not None
-            assert ws2 is not None
+    with (
+        ws_client.websocket_connect(f"/ws?token={token}") as ws1,
+        ws_client.websocket_connect(f"/ws?token={token}") as ws2,
+    ):
+        assert ws1 is not None
+        assert ws2 is not None

@@ -32,12 +32,12 @@ def test_multi_device_disconnect_of_one_keeps_others_online(
 
 def test_error_close_still_cleans_up_connection(ws_client, connection_manager):
     token = make_token(sub="user-a")
-    with pytest.raises(WebSocketDisconnect):
-        with ws_client.websocket_connect(f"/ws?token={token}") as ws:
-            ws.send_json(
-                {"recipient_id": "user-a", "content": "hi"}
-            )  # self-message: 4422
-            ws.receive_json()
+    with (
+        pytest.raises(WebSocketDisconnect),
+        ws_client.websocket_connect(f"/ws?token={token}") as ws,
+    ):
+        ws.send_json({"recipient_id": "user-a", "content": "hi"})  # self-message: 4422
+        ws.receive_json()
 
     assert connection_manager._connections.get("user-a", set()) == set()
 
