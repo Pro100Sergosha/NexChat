@@ -61,11 +61,17 @@ export function LoginPage() {
           <p className={styles.sub}>Patch into the line.</p>
         </header>
 
-        <div className={styles.tabs} role="tablist" aria-label="Access mode">
+        <div
+          className={styles.tabs}
+          data-mode={mode}
+          role="tablist"
+          aria-label="Access mode"
+        >
+          <span className={styles.indicator} aria-hidden />
           <button
             role="tab"
             aria-selected={mode === "login"}
-            className={mode === "login" ? styles.tabOn : styles.tab}
+            className={styles.tab}
             onClick={() => switchMode("login")}
             type="button"
           >
@@ -74,7 +80,7 @@ export function LoginPage() {
           <button
             role="tab"
             aria-selected={mode === "register"}
-            className={mode === "register" ? styles.tabOn : styles.tab}
+            className={styles.tab}
             onClick={() => switchMode("register")}
             type="button"
           >
@@ -107,9 +113,16 @@ export function LoginPage() {
               onChange={setPassword}
               placeholder={mode === "register" ? "8+ characters" : "••••••••"}
             />
-            {mode === "register" && password.length > 0 && (
-              <PasswordStrength password={password} />
-            )}
+            <div
+              className={styles.reveal}
+              data-open={
+                mode === "register" && password.length > 0 ? "" : undefined
+              }
+            >
+              <div className={styles.revealInner}>
+                <PasswordStrength password={password} />
+              </div>
+            </div>
           </div>
 
           <button

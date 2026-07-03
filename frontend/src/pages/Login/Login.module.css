@@ -56,9 +56,9 @@
 }
 
 .tabs {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px;
   background: var(--line);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
@@ -66,26 +66,62 @@
   margin-bottom: var(--sp-5);
 }
 
-.tab,
-.tabOn {
+/* Brass pill that slides between the two tabs on mode change */
+.indicator {
+  position: absolute;
+  z-index: 0;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  background: var(--brass);
+  border-radius: 1px;
+  transition: transform 0.28s var(--ease);
+}
+
+.tabs[data-mode="register"] .indicator {
+  transform: translateX(100%);
+}
+
+.tab {
+  position: relative;
+  z-index: 1;
   padding: var(--sp-2) var(--sp-3);
   font-family: var(--font-mono);
   font-size: var(--step-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
+  background: transparent;
   border-radius: 1px;
-  transition: color 0.18s var(--ease), background 0.18s var(--ease);
+  transition: color 0.2s var(--ease);
 }
 
-.tabOn {
+.tab[aria-selected="true"] {
   color: var(--bg);
-  background: var(--brass);
   font-weight: 600;
 }
 
-.tab:hover {
+.tab:not([aria-selected="true"]):hover {
   color: var(--cream);
+}
+
+/* Smoothly reveal the password strength gauge as it becomes relevant */
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.28s var(--ease), opacity 0.28s var(--ease);
+}
+
+.reveal[data-open] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.revealInner {
+  overflow: hidden;
+  min-height: 0;
 }
 
 .form {
