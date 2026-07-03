@@ -1,0 +1,61 @@
+/*
+ * NexChat — "Exchange" design tokens.
+ * A telephone-exchange console: warm charcoal, brass structure, a live cyan
+ * current. Brass = structure at rest. Cyan = a live connection (earned: it
+ * only appears when the WebSocket is open). Oxblood = error / destructive only.
+ */
+:root {
+  /* Surfaces — warm charcoal, never pure black */
+  --bg: #16130e;
+  --panel: #211d16;
+  --panel-raised: #2a251c;
+  --line: #332d22;
+  --line-strong: #453d2e;
+
+  /* Brass — structure, channel numbers, idle ticks, labels */
+  --brass: #b98a3e;
+  --brass-dim: #7a5e2c;
+  --brass-glow: rgba(185, 138, 62, 0.28);
+
+  /* Signal — the live current. WS-open state, own-message ticks */
+  --signal: #57c7c9;
+  --signal-dim: #2f6f70;
+  --signal-glow: rgba(87, 199, 201, 0.35);
+
+  /* Text */
+  --cream: #ede6d6;
+  --muted: #9b917e;
+  --faint: #6f6857;
+
+  /* Oxblood — errors, destructive, logout */
+  --oxblood: #a5432f;
+  --oxblood-bright: #c85a42;
+
+  /* Type */
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --step-xs: 0.72rem;
+  --step-sm: 0.82rem;
+  --step-md: 0.94rem;
+  --step-lg: 1.1rem;
+  --step-xl: 1.5rem;
+  --step-2xl: 2.1rem;
+
+  /* Space */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  --radius: 2px;
+  --radius-lg: 4px;
+
+  --rail-w: 300px;
+  --board-w: 420px;
+
+  --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+}
