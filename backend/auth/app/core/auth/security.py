@@ -24,7 +24,12 @@ class PasswordHasher:
 
     def verify(self, password: str, hashed: str) -> bool:
         secret = password.encode("utf-8")[:_BCRYPT_MAX_BYTES]
-        return bcrypt.checkpw(secret, hashed.encode("utf-8"))
+        try:
+            return bcrypt.checkpw(secret, hashed.encode("utf-8"))
+        except ValueError:
+            # corrupt/foreign hash in the DB column — treat as a failed login,
+            # never a 500.
+            return False
 
 
 class TokenService:
