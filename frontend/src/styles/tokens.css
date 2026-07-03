@@ -1,36 +1,16 @@
 /*
  * NexChat — "Exchange" design tokens.
- * A telephone-exchange console: warm charcoal, brass structure, a live cyan
- * current. Brass = structure at rest. Cyan = a live connection (earned: it
- * only appears when the WebSocket is open). Oxblood = error / destructive only.
+ * A telephone-exchange console: warm charcoal (dark) or aged operator-card
+ * ivory (light), brass structure, a live cyan/teal current. Brass = structure
+ * at rest. Signal = a live connection (earned: only when the WebSocket is
+ * open). Oxblood = error / destructive only.
+ *
+ * Colour tokens are themed; type/space/radius are theme-independent. Dark is
+ * the base. Light applies when the user picks it (data-theme="light") or when
+ * the system prefers light and the user hasn't forced dark. An explicit
+ * data-theme always wins over the system preference.
  */
 :root {
-  /* Surfaces — warm charcoal, never pure black */
-  --bg: #16130e;
-  --panel: #211d16;
-  --panel-raised: #2a251c;
-  --line: #332d22;
-  --line-strong: #453d2e;
-
-  /* Brass — structure, channel numbers, idle ticks, labels */
-  --brass: #b98a3e;
-  --brass-dim: #7a5e2c;
-  --brass-glow: rgba(185, 138, 62, 0.28);
-
-  /* Signal — the live current. WS-open state, own-message ticks */
-  --signal: #57c7c9;
-  --signal-dim: #2f6f70;
-  --signal-glow: rgba(87, 199, 201, 0.35);
-
-  /* Text */
-  --cream: #ede6d6;
-  --muted: #9b917e;
-  --faint: #6f6857;
-
-  /* Oxblood — errors, destructive, logout */
-  --oxblood: #a5432f;
-  --oxblood-bright: #c85a42;
-
   /* Type */
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -56,6 +36,96 @@
 
   --rail-w: 300px;
   --board-w: 420px;
+  --topbar-h: 52px;
 
   --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+
+/* ---- Colour: dark (base default) --------------------------------------- */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #16130e;
+  --bg-glow: #1d1912;
+  --panel: #211d16;
+  --panel-raised: #2a251c;
+  --line: #332d22;
+  --line-strong: #453d2e;
+
+  --brass: #b98a3e;
+  --brass-dim: #7a5e2c;
+  --brass-glow: rgba(185, 138, 62, 0.28);
+
+  --signal: #57c7c9;
+  --signal-dim: #2f6f70;
+  --signal-glow: rgba(87, 199, 201, 0.35);
+
+  --cream: #ede6d6;
+  --muted: #9b917e;
+  --faint: #6f6857;
+
+  --oxblood: #a5432f;
+  --oxblood-bright: #c85a42;
+
+  --shadow-plate: 0 24px 60px -30px rgba(0, 0, 0, 0.8);
+}
+
+/* Light colour set — kept identical in both selectors below. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --bg: #f2ece0;
+    --bg-glow: #fffdf6;
+    --panel: #fbf7ef;
+    --panel-raised: #ffffff;
+    --line: #e3dccb;
+    --line-strong: #d0c6b0;
+
+    --brass: #8a6414;
+    --brass-dim: #b2934e;
+    --brass-glow: rgba(138, 100, 20, 0.22);
+
+    --signal: #0f7d80;
+    --signal-dim: #8fc4c5;
+    --signal-glow: rgba(15, 125, 128, 0.22);
+
+    --cream: #241f15;
+    --muted: #6b6250;
+    --faint: #9c9480;
+
+    --oxblood: #993a28;
+    --oxblood-bright: #b4462f;
+
+    --shadow-plate: 0 20px 44px -28px rgba(50, 38, 12, 0.4);
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f2ece0;
+  --bg-glow: #fffdf6;
+  --panel: #fbf7ef;
+  --panel-raised: #ffffff;
+  --line: #e3dccb;
+  --line-strong: #d0c6b0;
+
+  --brass: #8a6414;
+  --brass-dim: #b2934e;
+  --brass-glow: rgba(138, 100, 20, 0.22);
+
+  --signal: #0f7d80;
+  --signal-dim: #8fc4c5;
+  --signal-glow: rgba(15, 125, 128, 0.22);
+
+  --cream: #241f15;
+  --muted: #6b6250;
+  --faint: #9c9480;
+
+  --oxblood: #993a28;
+  --oxblood-bright: #b4462f;
+
+  --shadow-plate: 0 20px 44px -28px rgba(50, 38, 12, 0.4);
 }

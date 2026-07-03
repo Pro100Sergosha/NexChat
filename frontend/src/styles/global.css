@@ -15,7 +15,7 @@ body,
 body {
   margin: 0;
   background:
-    radial-gradient(1200px 600px at 50% -10%, #1d1912 0%, var(--bg) 60%),
+    radial-gradient(1200px 600px at 50% -10%, var(--bg-glow) 0%, var(--bg) 60%),
     var(--bg);
   color: var(--cream);
   font-family: var(--font-sans);
