@@ -1,3 +1,4 @@
+from app.core.auth.model import User
 from app.core.auth.schemas import (
     LogoutRequest,
     RefreshRequest,
@@ -25,3 +26,7 @@ async def logout(
     request: LogoutRequest, access_token: str, service: AuthService
 ) -> None:
     await service.logout(request.refresh_token, access_token)
+
+
+async def me(user: User) -> UserResponse:
+    return UserResponse.model_validate(user)
