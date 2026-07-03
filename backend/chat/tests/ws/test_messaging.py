@@ -65,15 +65,17 @@ def test_existing_conversation_id_accepted(ws_client):
 def test_recipient_online_receives_broadcast(ws_client, db_session):
     sender_token = make_token(sub="user-a")
     recipient_token = make_token(sub="user-b")
-    with ws_client.websocket_connect(f"/ws?token={recipient_token}") as recipient_ws:
-        with ws_client.websocket_connect(f"/ws?token={sender_token}") as sender_ws:
-            sender_ws.send_json({"recipient_id": "user-b", "content": "hi"})
-            sender_ws.receive_json()  # ack to sender
-            # Read the broadcast while sender_ws is still open — closing it
-            # first cancels the server-side task via the portal, which can
-            # race ahead of (and abort) the broadcast send that follows the
-            # ack in the same handler iteration.
-            broadcast = recipient_ws.receive_json()
+    with (
+        ws_client.websocket_connect(f"/ws?token={recipient_token}") as recipient_ws,
+        ws_client.websocket_connect(f"/ws?token={sender_token}") as sender_ws,
+    ):
+        sender_ws.send_json({"recipient_id": "user-b", "content": "hi"})
+        sender_ws.receive_json()  # ack to sender
+        # Read the broadcast while sender_ws is still open — closing it
+        # first cancels the server-side task via the portal, which can
+        # race ahead of (and abort) the broadcast send that follows the
+        # ack in the same handler iteration.
+        broadcast = recipient_ws.receive_json()
 
     assert broadcast["content"] == "hi"
     assert broadcast["sender_id"] == "user-a"

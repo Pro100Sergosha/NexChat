@@ -25,9 +25,7 @@ class SqlAlchemyConversationRepository(ConversationRepository):
         orm = await self._session.get(ConversationORM, conversation_id)
         return self._to_domain(orm) if orm is not None else None
 
-    async def get_by_pair(
-        self, user_a_id: str, user_b_id: str
-    ) -> Conversation | None:
+    async def get_by_pair(self, user_a_id: str, user_b_id: str) -> Conversation | None:
         stmt = select(ConversationORM).where(
             or_(
                 (ConversationORM.user_a_id == user_a_id)
