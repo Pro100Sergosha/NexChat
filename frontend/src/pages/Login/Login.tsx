@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { ApiError } from "@/core/api";
+import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 import styles from "./Login.module.css";
 
 type Mode = "login" | "register";
@@ -41,6 +42,10 @@ export function LoginPage() {
 
   return (
     <main className={styles.screen}>
+      <div className={styles.themeCorner}>
+        <ThemeToggle />
+      </div>
+
       <section className={styles.plate} aria-labelledby="plate-title">
         <header className={styles.plateHead}>
           <span className="op-label">Nexchat Exchange</span>
