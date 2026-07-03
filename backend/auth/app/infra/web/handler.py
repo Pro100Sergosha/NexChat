@@ -1,5 +1,5 @@
+from app.core.auth.model import User
 from app.core.auth.schemas import (
-    LoginRequest,
     LogoutRequest,
     RefreshRequest,
     RegisterRequest,
@@ -14,8 +14,8 @@ async def register(request: RegisterRequest, service: AuthService) -> UserRespon
     return UserResponse.model_validate(user)
 
 
-async def login(request: LoginRequest, service: AuthService) -> TokenPair:
-    return await service.login(request.email, request.password)
+async def login(email: str, password: str, service: AuthService) -> TokenPair:
+    return await service.login(email, password)
 
 
 async def refresh(request: RefreshRequest, service: AuthService) -> TokenPair:
@@ -26,3 +26,7 @@ async def logout(
     request: LogoutRequest, access_token: str, service: AuthService
 ) -> None:
     await service.logout(request.refresh_token, access_token)
+
+
+async def me(user: User) -> UserResponse:
+    return UserResponse.model_validate(user)

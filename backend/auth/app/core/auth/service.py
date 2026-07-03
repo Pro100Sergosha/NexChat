@@ -32,12 +32,16 @@ class AuthService:
         self._hasher = hasher
 
     async def register(self, email: str, password: str) -> User:
+        email = email.strip().lower()
         if await self._users.get_by_email(email) is not None:
-            raise UserAlreadyExists(email)
+            raise UserAlreadyExists()
         hashed = self._hasher.hash(password)
         return await self._users.create(email, hashed)
 
     async def login(self, email: str, password: str) -> TokenPair:
+        email = email.strip().lower()
+        # TODO: rate-limit repeated failed attempts per identity
+        # (Redis counter + TTL) → 429/lockout.
         user = await self._users.get_by_email(email)
         if user is None or not self._hasher.verify(password, user.hashed_password):
             raise InvalidCredentials()

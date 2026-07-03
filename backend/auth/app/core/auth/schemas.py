@@ -4,12 +4,11 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class RegisterRequest(BaseModel):
+    # TODO: pin email edge cases — over-length, unicode local part,
+    # surrounding whitespace, plus-tags.
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr
+    # TODO: enforce password complexity (>=1 digit, >=1 letter) and pin
+    # unicode/whitespace-only/null-byte handling.
     password: str = Field(min_length=8, max_length=128)
 
 

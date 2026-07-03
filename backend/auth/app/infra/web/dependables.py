@@ -1,10 +1,11 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.exceptions import TokenExpired, TokenInvalid
+from app.core.auth.exceptions import NotAuthenticated, TokenInvalid, TokenRevoked
 from app.core.auth.model import User
 from app.core.auth.repository import TokenBlacklistRepository, UserRepository
 from app.core.auth.security import ACCESS_TOKEN_TYPE, PasswordHasher, TokenService
@@ -46,15 +47,21 @@ def get_auth_service(
     return AuthService(user_repo, blacklist, tokens, hasher)
 
 
+# Wired only so Swagger UI renders the "Authorize" button with a password-flow
+# login form (posts to tokenUrl, fills the token in automatically). Actual
+# token extraction/validation is done by get_access_token below.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
+
+
 def get_access_token(
-    authorization: Annotated[str | None, Header()] = None,
+    authorization: Annotated[str | None, Header(include_in_schema=False)] = None,
 ) -> str:
-    if authorization is None or not authorization.lower().startswith("bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing or invalid Authorization header",
-        )
-    return authorization.split(" ", 1)[1]
+    if authorization is None:
+        raise NotAuthenticated()
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise NotAuthenticated()
+    return token
 
 
 async def get_current_user(
@@ -63,24 +70,13 @@ async def get_current_user(
     blacklist: Annotated[TokenBlacklistRepository, Depends(get_blacklist)],
     user_repo: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> User:
-    try:
-        claims = tokens.decode(token)
-    except (TokenExpired, TokenInvalid) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        ) from exc
+    claims = tokens.decode(token)  # raises TokenExpired / TokenInvalid
     if claims.get("type") != ACCESS_TOKEN_TYPE:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
-        )
+        raise TokenInvalid()
     jti = claims.get("jti")
     if jti is None or await blacklist.is_revoked(jti):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked"
-        )
+        raise TokenRevoked()
     user = await user_repo.get_by_id(UUID(claims["sub"]))
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
-        )
+        raise TokenInvalid()
     return user
