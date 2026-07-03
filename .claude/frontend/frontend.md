@@ -1,8 +1,14 @@
 # Frontend
 
 Type: React + TypeScript SPA, built with Vite. CSS Modules per component.
-Served as a static bundle by Nginx (the `gateway` service), which also
-reverse-proxies the two backends on the same origin (no CORS).
+
+Running:
+- **Dev (docker-compose)**: the `gateway` service runs the Vite dev server with
+  `./frontend` bind-mounted, so edits hot-reload live. It proxies `/api/*` and
+  `/ws` to the `auth`/`chat` services (targets from env, see `vite.config.ts`).
+  App at `http://localhost:5173`.
+- **Prod**: `frontend/Dockerfile` builds the static bundle and serves it from
+  Nginx (`nginx/nginx.conf`) with the same-origin reverse proxy — no CORS.
 
 ## Stack
 
