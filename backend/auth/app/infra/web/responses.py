@@ -21,7 +21,7 @@ _STATUS_MAP: dict[type[AppException], int] = {
 }
 
 
-async def app_exception_handler(_: Request, exc: AppException) -> JSONResponse:
+def app_exception_handler(_: Request, exc: AppException) -> JSONResponse:
     status_code = _STATUS_MAP.get(type(exc), 400)
     return JSONResponse(
         status_code=status_code,
