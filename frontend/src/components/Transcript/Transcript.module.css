@@ -1,0 +1,93 @@
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-5);
+}
+
+.empty {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  letter-spacing: 0.03em;
+}
+
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.mine,
+.theirs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  max-width: min(72ch, 78%);
+}
+
+.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.theirs {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+/* Transcript entries — a tick + squared panel, not a chat pill */
+.bubble {
+  border-radius: var(--radius);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+}
+
+.mine .bubble {
+  border-left: 2px solid var(--signal);
+}
+
+.theirs .bubble {
+  border-left: 2px solid var(--brass);
+}
+
+.mine[data-pending] .bubble {
+  opacity: 0.55;
+}
+
+.content {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--step-md);
+  line-height: 1.5;
+  color: var(--cream);
+}
+
+.stamp {
+  display: flex;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--muted);
+}
+
+.who {
+  color: var(--faint);
+}
+
+.mine .who {
+  color: var(--signal-dim);
+}
+
+.theirs .who {
+  color: var(--brass-dim);
+}
