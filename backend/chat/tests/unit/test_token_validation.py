@@ -20,8 +20,14 @@ from app.core.chat.security import TokenVerifier
 from app.core.config import settings
 
 
+def _json_default(value: object) -> int:
+    if isinstance(value, datetime):
+        return int(value.timestamp())
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
 def _b64url(data: dict) -> str:
-    raw = json.dumps(data).encode()
+    raw = json.dumps(data, default=_json_default).encode()
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
 
 

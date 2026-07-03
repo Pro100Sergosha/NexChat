@@ -14,7 +14,7 @@ same close-code convention as the handshake (see test_handshake.py).
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-from tests.conftest import make_conversation, make_token
+from tests.conftest import make_token
 
 
 def _expect_close(ws_client, url, send, *, code, raw=False):
@@ -48,16 +48,18 @@ def test_second_message_reuses_same_conversation(ws_client, db_session):
     assert first_ack["conversation_id"] == second_ack["conversation_id"]
 
 
-async def test_existing_conversation_id_accepted(ws_client, db_session):
-    conversation = await make_conversation(
-        db_session, user_a_id="user-a", user_b_id="user-b"
-    )
+def test_existing_conversation_id_accepted(ws_client):
     token = make_token(sub="user-a")
     with ws_client.websocket_connect(f"/ws?token={token}") as ws:
-        ws.send_json({"conversation_id": conversation.id, "content": "hi"})
+        ws.send_json({"recipient_id": "user-b", "content": "hi"})
+        first_ack = ws.receive_json()
+        assert "conversation_id" in first_ack, f"unexpected response: {first_ack}"
+        conversation_id = first_ack["conversation_id"]
+
+        ws.send_json({"conversation_id": conversation_id, "content": "again"})
         ack = ws.receive_json()
 
-    assert ack["conversation_id"] == conversation.id
+    assert ack["conversation_id"] == conversation_id
 
 
 def test_recipient_online_receives_broadcast(ws_client, db_session):
@@ -67,7 +69,11 @@ def test_recipient_online_receives_broadcast(ws_client, db_session):
         with ws_client.websocket_connect(f"/ws?token={sender_token}") as sender_ws:
             sender_ws.send_json({"recipient_id": "user-b", "content": "hi"})
             sender_ws.receive_json()  # ack to sender
-        broadcast = recipient_ws.receive_json()
+            # Read the broadcast while sender_ws is still open — closing it
+            # first cancels the server-side task via the portal, which can
+            # race ahead of (and abort) the broadcast send that follows the
+            # ack in the same handler iteration.
+            broadcast = recipient_ws.receive_json()
 
     assert broadcast["content"] == "hi"
     assert broadcast["sender_id"] == "user-a"
@@ -82,18 +88,19 @@ def test_recipient_offline_message_still_persisted_no_error(ws_client, db_sessio
     assert ack["content"] == "hi"
 
 
-async def test_sender_not_participant_of_conversation_id_rejected(
-    ws_client, db_session
-):
-    conversation = await make_conversation(
-        db_session, user_a_id="user-a", user_b_id="user-b"
-    )
-    token = make_token(sub="user-c")
+def test_sender_not_participant_of_conversation_id_rejected(ws_client):
+    owner_token = make_token(sub="user-a")
+    with ws_client.websocket_connect(f"/ws?token={owner_token}") as owner_ws:
+        owner_ws.send_json({"recipient_id": "user-b", "content": "hi"})
+        owner_ack = owner_ws.receive_json()
+        assert "conversation_id" in owner_ack, f"unexpected response: {owner_ack}"
+        conversation_id = owner_ack["conversation_id"]
 
+    outsider_token = make_token(sub="user-c")
     _expect_close(
         ws_client,
-        f"/ws?token={token}",
-        {"conversation_id": conversation.id, "content": "hi"},
+        f"/ws?token={outsider_token}",
+        {"conversation_id": conversation_id, "content": "hi"},
         code=4403,
     )
 
