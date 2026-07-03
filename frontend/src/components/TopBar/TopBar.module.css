@@ -1,0 +1,79 @@
+.bar {
+  height: var(--topbar-h);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-4);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.mark {
+  color: var(--brass);
+  font-size: var(--step-lg);
+  line-height: 1;
+  transform: translateY(1px);
+}
+
+.name {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: var(--step-lg);
+  letter-spacing: 0.02em;
+  color: var(--cream);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.you {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.youId {
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  color: var(--signal);
+}
+
+.logout {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--oxblood-bright);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.logout:hover {
+  border-color: var(--oxblood);
+  background: color-mix(in srgb, var(--oxblood) 12%, transparent);
+}
+
+/* Tighten for narrow screens — hide the brand's secondary label + you-chip */
+@media (max-width: 560px) {
+  .you,
+  .brand :global(.op-label) {
+    display: none;
+  }
+}
