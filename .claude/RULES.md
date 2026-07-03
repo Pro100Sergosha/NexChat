@@ -30,4 +30,5 @@
 - New service added → create `.claude/backend/<service>.md` + add @import to CLAUDE.md
 - Architecture changes (new Redis usage, new service boundary) → update ARCHITECTURE.md
 - New cross-cutting rule → update RULES.md
+- Cross-service testing conventions (pyramid layout, error contract, shared fixtures) → update TESTING.md
 - Never update CLAUDE.md for content — only for new @imports
