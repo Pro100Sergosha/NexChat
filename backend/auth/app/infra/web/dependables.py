@@ -54,9 +54,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
 
 
 def get_access_token(
-    authorization: Annotated[
-        str | None, Header(include_in_schema=False)
-    ] = None,
+    authorization: Annotated[str | None, Header(include_in_schema=False)] = None,
 ) -> str:
     if authorization is None:
         raise NotAuthenticated()
