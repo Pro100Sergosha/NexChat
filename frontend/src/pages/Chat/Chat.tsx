@@ -4,6 +4,7 @@ import { useChatSocket } from "@/hooks/useChatSocket";
 import { getConversations, getMessages } from "@/core/chat";
 import { shortId } from "@/core/format";
 import { WS_CLOSE, type ChatMessage, type ConversationOut, type MessageOut } from "@/core/types";
+import { TopBar } from "@/components/TopBar/TopBar";
 import { LineRail } from "@/components/LineRail/LineRail";
 import { LiveLine } from "@/components/LiveLine/LiveLine";
 import { Transcript } from "@/components/Transcript/Transcript";
@@ -161,18 +162,18 @@ export function ChatPage() {
       : "Select a line, or open a new one.";
 
   return (
-    <div className={styles.shell} data-view={mobileLine ? "line" : "rail"}>
-      <LineRail
-        conversations={conversations}
-        activeId={activeId}
-        meId={meId}
-        meEmail={user.email}
-        onSelect={(id) => void selectConversation(id)}
-        onNewLine={openNewLine}
-        onLogout={() => void signOut()}
-      />
+    <div className={styles.page}>
+      <TopBar meId={meId} meEmail={user.email} onLogout={() => void signOut()} />
 
-      <section className={styles.line}>
+      <div className={styles.body} data-view={mobileLine ? "line" : "rail"}>
+        <LineRail
+          conversations={conversations}
+          activeId={activeId}
+          onSelect={(id) => void selectConversation(id)}
+          onNewLine={openNewLine}
+        />
+
+        <section className={styles.line}>
         <div className={styles.lineTop}>
           <button
             className={styles.back}
@@ -204,7 +205,8 @@ export function ChatPage() {
           hint="type on the line…"
           onSend={sendMessage}
         />
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

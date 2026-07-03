@@ -6,22 +6,11 @@ import styles from "./LineRail.module.css";
 interface Props {
   conversations: ConversationOut[];
   activeId: number | null;
-  meId: string;
-  meEmail: string;
   onSelect: (id: number) => void;
   onNewLine: (recipientId: string) => void;
-  onLogout: () => void;
 }
 
-export function LineRail({
-  conversations,
-  activeId,
-  meId,
-  meEmail,
-  onSelect,
-  onNewLine,
-  onLogout,
-}: Props) {
+export function LineRail({ conversations, activeId, onSelect, onNewLine }: Props) {
   const [opening, setOpening] = useState(false);
   const [recipient, setRecipient] = useState("");
 
@@ -97,18 +86,6 @@ export function LineRail({
           );
         })}
       </ul>
-
-      <footer className={styles.footer}>
-        <div className={styles.you}>
-          <span className="op-label">You</span>
-          <code className={styles.youId} title={`${meEmail} · ${meId}`}>
-            {shortId(meId)}
-          </code>
-        </div>
-        <button className={styles.logout} onClick={onLogout} type="button" title="Log out">
-          ⏻ Log out
-        </button>
-      </footer>
     </aside>
   );
 }
