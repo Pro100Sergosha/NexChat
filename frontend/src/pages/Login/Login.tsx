@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { ApiError } from "@/core/api";
+import { evaluatePassword } from "@/core/password";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
+import { PasswordField } from "@/components/PasswordField/PasswordField";
+import { PasswordStrength } from "@/components/PasswordStrength/PasswordStrength";
 import styles from "./Login.module.css";
 
 type Mode = "login" | "register";
@@ -39,6 +42,9 @@ export function LoginPage() {
     setError(false);
     setReadout(null);
   }
+
+  // Registration is gated on the client password policy; sign-in isn't.
+  const registerReady = mode === "login" || evaluatePassword(password).allMet;
 
   return (
     <main className={styles.screen}>
@@ -89,20 +95,28 @@ export function LoginPage() {
             />
           </label>
 
-          <label className={styles.field}>
-            <span className="op-label">Password</span>
-            <input
-              type="password"
+          <div className={styles.field}>
+            <label className="op-label" htmlFor="password">
+              Password
+            </label>
+            <PasswordField
+              id="password"
               autoComplete={mode === "login" ? "current-password" : "new-password"}
-              required
               minLength={mode === "register" ? 8 : undefined}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               placeholder={mode === "register" ? "8+ characters" : "••••••••"}
             />
-          </label>
+            {mode === "register" && password.length > 0 && (
+              <PasswordStrength password={password} />
+            )}
+          </div>
 
-          <button className={styles.connect} type="submit" disabled={busy}>
+          <button
+            className={styles.connect}
+            type="submit"
+            disabled={busy || !registerReady}
+          >
             {mode === "login" ? "Connect" : "Open line"}
           </button>
         </form>
