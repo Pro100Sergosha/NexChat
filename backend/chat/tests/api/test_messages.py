@@ -27,9 +27,7 @@ async def test_returns_messages_in_ascending_order(client, db_session):
     )
     token = make_token(sub="user-a")
 
-    resp = await client.get(
-        f"/messages/{conversation.id}", headers=auth_headers(token)
-    )
+    resp = await client.get(f"/messages/{conversation.id}", headers=auth_headers(token))
 
     assert resp.status_code == 200
     body = resp.json()
@@ -45,9 +43,7 @@ async def test_response_shape_has_all_fields(client, db_session):
     )
     token = make_token(sub="user-a")
 
-    resp = await client.get(
-        f"/messages/{conversation.id}", headers=auth_headers(token)
-    )
+    resp = await client.get(f"/messages/{conversation.id}", headers=auth_headers(token))
 
     body = resp.json()[0]
     assert body == {
@@ -73,9 +69,7 @@ async def test_default_limit_is_50(client, db_session):
         )
     token = make_token(sub="user-a")
 
-    resp = await client.get(
-        f"/messages/{conversation.id}", headers=auth_headers(token)
-    )
+    resp = await client.get(f"/messages/{conversation.id}", headers=auth_headers(token))
 
     assert len(resp.json()) == 50
 
@@ -211,9 +205,7 @@ async def test_empty_conversation_returns_empty_list(client, db_session):
     )
     token = make_token(sub="user-a")
 
-    resp = await client.get(
-        f"/messages/{conversation.id}", headers=auth_headers(token)
-    )
+    resp = await client.get(f"/messages/{conversation.id}", headers=auth_headers(token))
 
     assert resp.status_code == 200
     assert resp.json() == []
@@ -233,9 +225,7 @@ async def test_non_participant_rejected(client, db_session):
     )
     token = make_token(sub="user-c")
 
-    resp = await client.get(
-        f"/messages/{conversation.id}", headers=auth_headers(token)
-    )
+    resp = await client.get(f"/messages/{conversation.id}", headers=auth_headers(token))
 
     assert_error(resp, 404, "conversation_not_found")
 
@@ -288,9 +278,7 @@ async def test_expired_token_rejected(client, db_session):
     )
     token = make_token(sub="user-a", expires_in=-60)
 
-    resp = await client.get(
-        f"/messages/{conversation.id}", headers=auth_headers(token)
-    )
+    resp = await client.get(f"/messages/{conversation.id}", headers=auth_headers(token))
 
     assert_error(resp, 401, "token_expired")
 
@@ -301,9 +289,7 @@ async def test_wrong_signature_token_rejected(client, db_session):
     )
     token = make_token(sub="user-a", secret="wrong-secret")
 
-    resp = await client.get(
-        f"/messages/{conversation.id}", headers=auth_headers(token)
-    )
+    resp = await client.get(f"/messages/{conversation.id}", headers=auth_headers(token))
 
     assert_error(resp, 401, "token_invalid")
 
@@ -314,8 +300,6 @@ async def test_refresh_token_used_as_access_rejected(client, db_session):
     )
     token = make_token(sub="user-a", token_type="refresh")
 
-    resp = await client.get(
-        f"/messages/{conversation.id}", headers=auth_headers(token)
-    )
+    resp = await client.get(f"/messages/{conversation.id}", headers=auth_headers(token))
 
     assert_error(resp, 401, "token_invalid")

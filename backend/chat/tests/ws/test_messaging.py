@@ -82,7 +82,9 @@ def test_recipient_offline_message_still_persisted_no_error(ws_client, db_sessio
     assert ack["content"] == "hi"
 
 
-async def test_sender_not_participant_of_conversation_id_rejected(ws_client, db_session):
+async def test_sender_not_participant_of_conversation_id_rejected(
+    ws_client, db_session
+):
     conversation = await make_conversation(
         db_session, user_a_id="user-a", user_b_id="user-b"
     )
@@ -135,9 +137,7 @@ def test_malformed_json_payload_rejected(ws_client, db_session):
 
 def test_missing_recipient_and_conversation_id_rejected(ws_client, db_session):
     token = make_token(sub="user-a")
-    _expect_close(
-        ws_client, f"/ws?token={token}", {"content": "hi"}, code=4422
-    )
+    _expect_close(ws_client, f"/ws?token={token}", {"content": "hi"}, code=4422)
 
 
 def test_self_message_rejected(ws_client, db_session):

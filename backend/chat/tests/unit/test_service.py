@@ -127,9 +127,7 @@ class TestSendMessage:
         msg_repo = AsyncMock()
 
         service = _service(conversation_repo=conv_repo, message_repo=msg_repo)
-        await service.send_message(
-            sender_id="user-a", conversation_id=42, content="hi"
-        )
+        await service.send_message(sender_id="user-a", conversation_id=42, content="hi")
 
         conv_repo.get_by_pair.assert_not_called()
         _, kwargs = msg_repo.create.await_args

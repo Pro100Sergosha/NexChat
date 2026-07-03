@@ -117,7 +117,9 @@ async def make_conversation(
 async def make_message(
     db: AsyncSession, *, conversation_id: int, sender_id: str, content: str
 ) -> Message:
-    message = Message(conversation_id=conversation_id, sender_id=sender_id, content=content)
+    message = Message(
+        conversation_id=conversation_id, sender_id=sender_id, content=content
+    )
     db.add(message)
     await db.commit()
     await db.refresh(message)

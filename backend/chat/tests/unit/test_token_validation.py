@@ -29,7 +29,9 @@ class TestTokenVerifier:
     def setup_method(self):
         self.verifier = TokenVerifier(settings)
 
-    def _sign(self, claims: dict, *, secret: str | None = None, algorithm: str | None = None) -> str:
+    def _sign(
+        self, claims: dict, *, secret: str | None = None, algorithm: str | None = None
+    ) -> str:
         return jwt.encode(
             claims,
             secret if secret is not None else settings.JWT_SECRET_KEY,
