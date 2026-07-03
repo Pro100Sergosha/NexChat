@@ -23,16 +23,6 @@ from app.runner.setup import create_app
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-engine = create_async_engine(
-    TEST_DATABASE_URL,
-    echo=False,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = async_sessionmaker(
-    bind=engine, class_=AsyncSession, expire_on_commit=False
-)
-
 
 class FakeConnectionManager(ConnectionManager):
     """In-memory stand-in for the Redis-backed connection registry."""
@@ -54,13 +44,35 @@ class FakeConnectionManager(ConnectionManager):
 
 
 @pytest_asyncio.fixture
-async def db_session():
+async def test_engine():
+    """Fresh in-memory SQLite engine + its own StaticPool connection, scoped
+    to a single test. Never shared across tests (or across event loops) —
+    a session-scoped engine combined with ws_client's real OS-thread portal
+    caused cross-test table/connection corruption.
+    """
+    engine = create_async_engine(
+        TEST_DATABASE_URL,
+        echo=False,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    async with TestingSessionLocal() as session:
+    try:
+        yield engine
+    finally:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def db_session(test_engine):
+    session_factory = async_sessionmaker(
+        bind=test_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    async with session_factory() as session:
         yield session
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture
@@ -69,9 +81,14 @@ def connection_manager() -> FakeConnectionManager:
 
 
 @pytest_asyncio.fixture
-async def client(db_session, connection_manager):
+async def client(test_engine, db_session, connection_manager):
+    session_factory = async_sessionmaker(
+        bind=test_engine, class_=AsyncSession, expire_on_commit=False
+    )
+
     async def override_get_db():
-        yield db_session
+        async with session_factory() as session:
+            yield session
 
     app = create_app()
     app.dependency_overrides[get_db] = override_get_db
@@ -83,11 +100,16 @@ async def client(db_session, connection_manager):
 
 
 @pytest.fixture
-def ws_client(db_session, connection_manager):
+def ws_client(test_engine, db_session, connection_manager):
     """Sync TestClient for WS tests — httpx's ASGITransport has no WS support."""
 
+    session_factory = async_sessionmaker(
+        bind=test_engine, class_=AsyncSession, expire_on_commit=False
+    )
+
     async def override_get_db():
-        yield db_session
+        async with session_factory() as session:
+            yield session
 
     app = create_app()
     app.dependency_overrides[get_db] = override_get_db
