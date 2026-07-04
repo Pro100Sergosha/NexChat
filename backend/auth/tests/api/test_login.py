@@ -9,6 +9,7 @@
 * Errors follow {"code", "message"} with a human-readable message.
 """
 
+from app.core.auth.service import MAX_LOGIN_ATTEMPTS
 from tests.conftest import assert_error, make_user
 
 # ---------------------------------------------------------------------------
@@ -72,6 +73,72 @@ async def test_login_does_not_reveal_which_field_was_wrong(client):
     )
     assert wrong_password.status_code == unknown_user.status_code == 401
     assert wrong_password.json() == unknown_user.json()
+
+
+# ---------------------------------------------------------------------------
+# rate limiting — lockout after repeated failures (429)
+# ---------------------------------------------------------------------------
+
+
+async def test_login_locks_out_after_repeated_failures(client):
+    ac, db, _ = client
+    await make_user(db, email="lock@example.com", password="password123")
+    limit = MAX_LOGIN_ATTEMPTS
+    for _ in range(limit):
+        bad = await ac.post(
+            "/login", data={"username": "lock@example.com", "password": "wrong"}
+        )
+        assert_error(bad, 401, "invalid_credentials")
+    locked = await ac.post(
+        "/login", data={"username": "lock@example.com", "password": "wrong"}
+    )
+    assert_error(locked, 429, "too_many_attempts")
+
+
+async def test_login_lockout_ignores_a_correct_password(client):
+    """Once locked, even the right password is refused until the window clears."""
+    ac, db, _ = client
+    _, password = await make_user(db, email="lock@example.com")
+    for _ in range(MAX_LOGIN_ATTEMPTS):
+        await ac.post(
+            "/login", data={"username": "lock@example.com", "password": "wrong"}
+        )
+    locked = await ac.post(
+        "/login", data={"username": "lock@example.com", "password": password}
+    )
+    assert_error(locked, 429, "too_many_attempts")
+
+
+async def test_login_success_clears_failure_counter(client):
+    ac, db, _ = client
+    _, password = await make_user(db, email="lock@example.com")
+    # stay one short of the limit, then succeed
+    for _ in range(MAX_LOGIN_ATTEMPTS - 1):
+        await ac.post(
+            "/login", data={"username": "lock@example.com", "password": "wrong"}
+        )
+    ok = await ac.post(
+        "/login", data={"username": "lock@example.com", "password": password}
+    )
+    assert ok.status_code == 200
+    # counter reset → the same number of failures again does NOT lock immediately
+    bad = await ac.post(
+        "/login", data={"username": "lock@example.com", "password": "wrong"}
+    )
+    assert_error(bad, 401, "invalid_credentials")
+
+
+async def test_login_lockout_does_not_reveal_unknown_user(client):
+    """An unknown email locks out identically — no enumeration via 429 timing."""
+    ac, _, _ = client
+    for _ in range(MAX_LOGIN_ATTEMPTS):
+        await ac.post(
+            "/login", data={"username": "ghost@example.com", "password": "wrong"}
+        )
+    locked = await ac.post(
+        "/login", data={"username": "ghost@example.com", "password": "wrong"}
+    )
+    assert_error(locked, 429, "too_many_attempts")
 
 
 # ---------------------------------------------------------------------------

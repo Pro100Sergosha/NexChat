@@ -10,6 +10,7 @@ from app.core.auth.exceptions import (
     TokenExpired,
     TokenInvalid,
     TokenRevoked,
+    TooManyAttempts,
     UserAlreadyExists,
     UserNotFound,
 )
@@ -23,6 +24,7 @@ _STATUS_MAP: dict[type[AppException], int] = {
     TokenInvalid: 401,
     TokenRevoked: 401,
     NotAuthenticated: 401,
+    TooManyAttempts: 429,
 }
 
 _SKIP_LOC_PARTS = {"body", "query", "path", "header", "cookie"}
@@ -55,6 +57,10 @@ def _friendly_message(error: dict[str, Any]) -> str:
         return f"{display} must be at most {ctx['max_length']} characters"
     if field == "email":
         return "The email address is not valid"
+    if err_type == "value_error":
+        # custom field_validator ValueError — the raw msg is prefixed with
+        # "Value error, "; our validators already name the field, so strip it.
+        return str(error["msg"]).removeprefix("Value error, ")
     return str(error["msg"])
 
 

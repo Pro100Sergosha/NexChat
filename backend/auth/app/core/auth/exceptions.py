@@ -48,3 +48,10 @@ class NotAuthenticated(AppException):
 
     code = "not_authenticated"
     message = "Authentication credentials were not provided"
+
+
+class TooManyAttempts(AppException):
+    """Raised when failed logins for an identity exceed the allowed rate."""
+
+    code = "too_many_attempts"
+    message = "Too many failed login attempts. Try again later"

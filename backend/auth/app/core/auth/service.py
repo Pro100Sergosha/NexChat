@@ -5,10 +5,15 @@ from app.core.auth.exceptions import (
     InvalidCredentials,
     TokenInvalid,
     TokenRevoked,
+    TooManyAttempts,
     UserAlreadyExists,
 )
 from app.core.auth.model import User
-from app.core.auth.repository import TokenBlacklistRepository, UserRepository
+from app.core.auth.repository import (
+    LoginRateLimiter,
+    TokenBlacklistRepository,
+    UserRepository,
+)
 from app.core.auth.schemas import TokenPair
 from app.core.auth.security import (
     ACCESS_TOKEN_TYPE,
@@ -16,6 +21,10 @@ from app.core.auth.security import (
     PasswordHasher,
     TokenService,
 )
+
+# Failed logins allowed per identity before the lockout kicks in (see the
+# rate limiter for how long the window lasts).
+MAX_LOGIN_ATTEMPTS = 5
 
 
 class AuthService:
@@ -25,11 +34,15 @@ class AuthService:
         blacklist: TokenBlacklistRepository,
         tokens: TokenService,
         hasher: PasswordHasher,
+        rate_limiter: LoginRateLimiter,
+        max_login_attempts: int = MAX_LOGIN_ATTEMPTS,
     ) -> None:
         self._users = user_repo
         self._blacklist = blacklist
         self._tokens = tokens
         self._hasher = hasher
+        self._rate_limiter = rate_limiter
+        self._max_login_attempts = max_login_attempts
 
     async def register(self, email: str, password: str) -> User:
         email = email.strip().lower()
@@ -40,11 +53,16 @@ class AuthService:
 
     async def login(self, email: str, password: str) -> TokenPair:
         email = email.strip().lower()
-        # TODO: rate-limit repeated failed attempts per identity
-        # (Redis counter + TTL) → 429/lockout.
+        # Lockout check runs before the DB lookup: a throttled identity costs
+        # nothing, and blocking without probing keeps the response identical for
+        # existing and unknown emails (no enumeration).
+        if await self._rate_limiter.count(email) >= self._max_login_attempts:
+            raise TooManyAttempts()
         user = await self._users.get_by_email(email)
         if user is None or not self._hasher.verify(password, user.hashed_password):
+            await self._rate_limiter.hit(email)
             raise InvalidCredentials()
+        await self._rate_limiter.reset(email)
         return self._issue_pair(str(user.id))
 
     async def refresh(self, refresh_token: str) -> TokenPair:

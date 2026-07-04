@@ -10,6 +10,7 @@ from app.core.auth.exceptions import (
     TokenExpired,
     TokenInvalid,
     TokenRevoked,
+    TooManyAttempts,
     UserAlreadyExists,
 )
 from app.core.auth.model import User
@@ -20,7 +21,7 @@ from app.core.auth.security import (
 )
 from app.core.auth.service import AuthService
 from app.core.config import settings
-from tests.conftest import FakeBlacklist
+from tests.conftest import FakeBlacklist, FakeLoginRateLimiter
 
 
 def _user(email: str = "user@example.com", password: str = "password123") -> User:
@@ -32,12 +33,19 @@ def _user(email: str = "user@example.com", password: str = "password123") -> Use
     )
 
 
-def _service(user_repo: AsyncMock, blacklist=None) -> AuthService:
+def _service(
+    user_repo: AsyncMock,
+    blacklist=None,
+    rate_limiter=None,
+    max_login_attempts: int = 5,
+) -> AuthService:
     return AuthService(
         user_repo=user_repo,
         blacklist=blacklist or FakeBlacklist(),
         tokens=TokenService(settings),
         hasher=PasswordHasher(),
+        rate_limiter=rate_limiter or FakeLoginRateLimiter(),
+        max_login_attempts=max_login_attempts,
     )
 
 
@@ -162,6 +170,84 @@ class TestLogin:
         service = _service(repo)
         with pytest.raises(InvalidCredentials):
             await service.login("user@example.com", "password123")
+
+
+# ---------------------------------------------------------------------------
+# login rate limiting — lockout after repeated failures per identity
+# ---------------------------------------------------------------------------
+
+
+class TestLoginRateLimit:
+    async def test_lockout_after_max_failed_attempts(self):
+        repo = AsyncMock()
+        repo.get_by_email.return_value = _user(password="password123")
+        service = _service(repo, max_login_attempts=3)
+
+        for _ in range(3):
+            with pytest.raises(InvalidCredentials):
+                await service.login("user@example.com", "wrong")
+        # the 4th attempt is blocked before credentials are even checked
+        with pytest.raises(TooManyAttempts):
+            await service.login("user@example.com", "wrong")
+
+    async def test_lockout_blocks_even_a_correct_password(self):
+        repo = AsyncMock()
+        repo.get_by_email.return_value = _user(password="password123")
+        service = _service(repo, max_login_attempts=3)
+
+        for _ in range(3):
+            with pytest.raises(InvalidCredentials):
+                await service.login("user@example.com", "wrong")
+        with pytest.raises(TooManyAttempts):
+            await service.login("user@example.com", "password123")
+
+    async def test_lockout_short_circuits_before_the_repository(self):
+        """A locked identity must not reach the DB — save the round trip."""
+        repo = AsyncMock()
+        repo.get_by_email.return_value = _user(password="password123")
+        service = _service(repo, max_login_attempts=2)
+
+        for _ in range(2):
+            with pytest.raises(InvalidCredentials):
+                await service.login("user@example.com", "wrong")
+        repo.get_by_email.reset_mock()
+        with pytest.raises(TooManyAttempts):
+            await service.login("user@example.com", "wrong")
+        repo.get_by_email.assert_not_called()
+
+    async def test_successful_login_resets_the_counter(self):
+        repo = AsyncMock()
+        repo.get_by_email.return_value = _user(password="password123")
+        limiter = FakeLoginRateLimiter()
+        service = _service(repo, rate_limiter=limiter, max_login_attempts=3)
+
+        for _ in range(2):
+            with pytest.raises(InvalidCredentials):
+                await service.login("user@example.com", "wrong")
+        await service.login("user@example.com", "password123")
+        assert await limiter.count("user@example.com") == 0
+
+    async def test_failures_are_tracked_per_identity(self):
+        repo = AsyncMock()
+        repo.get_by_email.return_value = None
+        service = _service(repo, max_login_attempts=2)
+
+        for _ in range(2):
+            with pytest.raises(InvalidCredentials):
+                await service.login("a@example.com", "wrong")
+        # a different identity is unaffected by a@example.com's failures
+        with pytest.raises(InvalidCredentials):
+            await service.login("b@example.com", "wrong")
+
+    async def test_counter_keys_on_normalized_email(self):
+        repo = AsyncMock()
+        repo.get_by_email.return_value = None
+        limiter = FakeLoginRateLimiter()
+        service = _service(repo, rate_limiter=limiter, max_login_attempts=5)
+
+        with pytest.raises(InvalidCredentials):
+            await service.login("  MiXeD@Example.COM ", "wrong")
+        assert await limiter.count("mixed@example.com") == 1
 
 
 # ---------------------------------------------------------------------------
