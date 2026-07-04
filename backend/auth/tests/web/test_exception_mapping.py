@@ -46,6 +46,12 @@ ERROR_CATALOG = [
         "not_authenticated",
         "Authentication credentials were not provided",
     ),
+    (
+        "TooManyAttempts",
+        429,
+        "too_many_attempts",
+        "Too many failed login attempts. Try again later",
+    ),
 ]
 
 

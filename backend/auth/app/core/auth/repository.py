@@ -21,3 +21,14 @@ class TokenBlacklistRepository(ABC):
 
     @abstractmethod
     async def is_revoked(self, jti: str) -> bool: ...
+
+
+class LoginRateLimiter(ABC):
+    @abstractmethod
+    async def hit(self, identity: str) -> int: ...
+
+    @abstractmethod
+    async def count(self, identity: str) -> int: ...
+
+    @abstractmethod
+    async def reset(self, identity: str) -> None: ...

@@ -10,6 +10,7 @@ from app.core.auth.exceptions import (
     TokenExpired,
     TokenInvalid,
     TokenRevoked,
+    TooManyAttempts,
     UserAlreadyExists,
     UserNotFound,
 )
@@ -23,6 +24,7 @@ _STATUS_MAP: dict[type[AppException], int] = {
     TokenInvalid: 401,
     TokenRevoked: 401,
     NotAuthenticated: 401,
+    TooManyAttempts: 429,
 }
 
 _SKIP_LOC_PARTS = {"body", "query", "path", "header", "cookie"}

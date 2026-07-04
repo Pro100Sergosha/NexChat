@@ -15,13 +15,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from app.core.auth.model import User
-from app.core.auth.repository import TokenBlacklistRepository, UserRepository
+from app.core.auth.repository import (
+    LoginRateLimiter,
+    TokenBlacklistRepository,
+    UserRepository,
+)
 from app.core.auth.security import PasswordHasher, TokenService
 from app.core.config import settings
 from app.infra.database.base import Base
 from app.infra.database.config import get_session
 from app.infra.database.models import UserORM
-from app.infra.web.dependables import get_blacklist
+from app.infra.web.dependables import get_blacklist, get_rate_limiter
 from app.runner.setup import create_app
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -48,6 +52,23 @@ class FakeBlacklist(TokenBlacklistRepository):
 
     async def is_revoked(self, jti: str) -> bool:
         return jti in self._store
+
+
+class FakeLoginRateLimiter(LoginRateLimiter):
+    """In-memory stand-in for the Redis failed-login counter (no TTL expiry)."""
+
+    def __init__(self) -> None:
+        self._counts: dict[str, int] = {}
+
+    async def hit(self, identity: str) -> int:
+        self._counts[identity] = self._counts.get(identity, 0) + 1
+        return self._counts[identity]
+
+    async def count(self, identity: str) -> int:
+        return self._counts.get(identity, 0)
+
+    async def reset(self, identity: str) -> None:
+        self._counts.pop(identity, None)
 
 
 class InMemoryUserRepository(UserRepository):
@@ -99,6 +120,7 @@ async def db_session():
 @pytest_asyncio.fixture
 async def client(db_session):
     _blacklist = FakeBlacklist()
+    _rate_limiter = FakeLoginRateLimiter()
 
     async def override_get_session():
         yield db_session
@@ -106,9 +128,13 @@ async def client(db_session):
     def override_blacklist():
         return _blacklist
 
+    def override_rate_limiter():
+        return _rate_limiter
+
     app = create_app()
     app.dependency_overrides[get_session] = override_get_session
     app.dependency_overrides[get_blacklist] = override_blacklist
+    app.dependency_overrides[get_rate_limiter] = override_rate_limiter
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
