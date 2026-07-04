@@ -1,5 +1,6 @@
 import { shortId } from "@/core/format";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
+import { AlertsToggle } from "@/components/AlertsToggle/AlertsToggle";
 import styles from "./TopBar.module.css";
 
 interface Props {
@@ -25,6 +26,7 @@ export function TopBar({ meId, meEmail, onLogout }: Props) {
           <span className="op-label">You</span>
           <code className={styles.youId}>{shortId(meId)}</code>
         </div>
+        <AlertsToggle />
         <ThemeToggle />
         <button className={styles.logout} onClick={onLogout} type="button">
           <span aria-hidden>⏻</span> Log out
