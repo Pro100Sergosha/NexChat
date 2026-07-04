@@ -57,6 +57,10 @@ def _friendly_message(error: dict[str, Any]) -> str:
         return f"{display} must be at most {ctx['max_length']} characters"
     if field == "email":
         return "The email address is not valid"
+    if err_type == "value_error":
+        # custom field_validator ValueError — the raw msg is prefixed with
+        # "Value error, "; our validators already name the field, so strip it.
+        return str(error["msg"]).removeprefix("Value error, ")
     return str(error["msg"])
 
 
