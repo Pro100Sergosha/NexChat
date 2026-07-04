@@ -1,0 +1,34 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.toggle:hover {
+  color: var(--brass);
+  border-color: var(--brass-dim);
+}
+
+.toggle[aria-pressed="true"] {
+  color: var(--signal);
+  border-color: var(--signal-dim);
+}
+
+.glyph {
+  font-size: var(--step-md);
+  line-height: 1;
+}
+
+.label {
+  min-width: 2.2em;
+  text-align: left;
+}

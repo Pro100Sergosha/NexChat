@@ -1,0 +1,109 @@
+.head {
+  padding: var(--sp-4) var(--sp-5) 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-3);
+}
+
+.channel {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: var(--step-md);
+  letter-spacing: 0.08em;
+  color: var(--brass);
+}
+
+.party {
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  color: var(--muted);
+}
+
+.badge,
+.badgeLive {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.badgeLive {
+  color: var(--signal);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brass-dim);
+}
+
+.badgeLive .dot {
+  background: var(--signal);
+  box-shadow: 0 0 8px var(--signal-glow);
+}
+
+/* The line itself */
+.line {
+  position: relative;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+/* Open — solid cyan current, softly lit */
+.line[data-status="open"] {
+  background: linear-gradient(90deg, var(--signal-dim), var(--signal), var(--signal-dim));
+  box-shadow: 0 0 12px -1px var(--signal-glow);
+}
+
+/* Not open — dim brass dashes, "no current on the wire" */
+.line[data-status="connecting"],
+.line[data-status="reconnecting"],
+.line[data-status="closed"] {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--brass-dim) 0,
+    var(--brass-dim) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  opacity: 0.7;
+}
+
+/* A single bright packet traveling the wire — fired per sent message */
+.pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--cream), transparent);
+  animation: travel 0.5s var(--ease) forwards;
+}
+
+@keyframes travel {
+  from {
+    transform: translateX(-40px);
+  }
+  to {
+    transform: translateX(120vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    display: none;
+  }
+}

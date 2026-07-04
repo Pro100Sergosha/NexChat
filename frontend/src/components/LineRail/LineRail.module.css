@@ -1,0 +1,152 @@
+.rail {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  min-height: 0;
+}
+
+.railHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.newBtn {
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--signal);
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--signal-dim);
+  border-radius: var(--radius);
+  transition: background 0.15s var(--ease);
+}
+
+.newBtn:hover {
+  background: rgba(87, 199, 201, 0.1);
+}
+
+.newForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.newInput {
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  color: var(--cream);
+}
+
+.newInput:focus {
+  outline: none;
+  border-color: var(--signal-dim);
+  box-shadow: 0 0 0 1px var(--signal-dim);
+}
+
+.openBtn {
+  padding: var(--sp-2);
+  background: var(--brass);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: var(--sp-2) 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.empty {
+  padding: var(--sp-5) var(--sp-4);
+  color: var(--faint);
+  font-size: var(--step-sm);
+  line-height: 1.6;
+}
+
+.row,
+.rowOn {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  text-align: left;
+  border-left: 2px solid transparent;
+  transition: background 0.14s var(--ease);
+}
+
+.row:hover {
+  background: var(--panel-raised);
+}
+
+.rowOn {
+  background: var(--panel-raised);
+  border-left-color: var(--signal);
+}
+
+.rowMark {
+  font-size: 9px;
+  color: var(--brass-dim);
+}
+
+.rowOn .rowMark {
+  color: var(--signal);
+}
+
+.rowChannel {
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.06em;
+  color: var(--brass);
+}
+
+.rowParty {
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  color: var(--cream);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowTime {
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--muted);
+}
+
+/* Unread count — live signal pill */
+.badge {
+  min-width: 1.5em;
+  padding: 1px var(--sp-1);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--bg);
+  background: var(--signal);
+  border-radius: 999px;
+  box-shadow: 0 0 8px -2px var(--signal-glow);
+}

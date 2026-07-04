@@ -55,6 +55,31 @@ services:
     networks:
       - nexchat
 
+  gateway:
+    image: node:20-alpine
+    container_name: nexchat_gateway
+    working_dir: /app
+    depends_on:
+      - auth
+      - chat
+    environment:
+      # Proxy API/WS to the backend services by name (see vite.config.ts).
+      - AUTH_PROXY_TARGET=http://auth:8000
+      - CHAT_PROXY_TARGET=http://chat:8001
+      - CHAT_WS_TARGET=ws://chat:8001
+      # Bind-mount file watching needs polling on Windows/WSL hosts.
+      - VITE_USE_POLLING=1
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./frontend:/app
+      # Keep the container's own (linux) node_modules — don't let the host's
+      # bind mount shadow it with a Windows-built tree.
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - nexchat
+
   postgres:
     image: postgres:16-alpine
     container_name: nexchat_postgres

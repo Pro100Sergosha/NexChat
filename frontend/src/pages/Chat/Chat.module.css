@@ -1,0 +1,77 @@
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--rail-w) 1fr;
+  overflow: hidden;
+}
+
+.line {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+}
+
+.lineTop {
+  display: flex;
+  align-items: stretch;
+}
+
+.lineHeadWrap {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Back-to-rail control — mobile only */
+.back {
+  display: none;
+  align-items: center;
+  padding: 0 var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  letter-spacing: 0.06em;
+  color: var(--brass);
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.notice {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-4);
+  display: flex;
+  gap: var(--sp-2);
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.03em;
+  color: var(--oxblood-bright);
+  background: rgba(165, 67, 47, 0.1);
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 720px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+
+  /* One pane at a time on mobile, chosen by data-view */
+  .body[data-view="line"] > :global(aside) {
+    display: none;
+  }
+  .body[data-view="rail"] .line {
+    display: none;
+  }
+
+  .back {
+    display: flex;
+  }
+}
