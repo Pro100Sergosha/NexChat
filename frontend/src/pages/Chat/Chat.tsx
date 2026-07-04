@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
+import { useAlerts } from "@/alerts/AlertsContext";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { getConversations, getMessages } from "@/core/chat";
 import { shortId } from "@/core/format";
@@ -18,11 +19,13 @@ const REJECT_MESSAGE: Record<number, string> = {
 
 export function ChatPage() {
   const { user, signOut } = useAuth();
+  const alerts = useAlerts();
 
   const [conversations, setConversations] = useState<ConversationOut[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [draftRecipient, setDraftRecipient] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [unread, setUnread] = useState<Record<number, number>>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pulseKey, setPulseKey] = useState(0);
   const [mobileLine, setMobileLine] = useState(false);
@@ -57,6 +60,13 @@ export function ChatPage() {
     setNotice(null);
     setMobileLine(true);
     setMessages([]);
+    // Opening a line clears its unread tally.
+    setUnread((u) => {
+      if (!u[id]) return u;
+      const next = { ...u };
+      delete next[id];
+      return next;
+    });
     try {
       const msgs = await getMessages(id);
       if (activeIdRef.current === id) setMessages(msgs);
@@ -72,6 +82,28 @@ export function ChatPage() {
         setMessages((prev) => reconcile(prev, msg));
       }
 
+      // Incoming from the other party: track unread + raise an alert unless
+      // it's the line we're actively looking at in a focused tab.
+      if (msg.sender_id !== meId) {
+        const active = activeIdRef.current;
+        if (msg.conversation_id !== active) {
+          setUnread((u) => ({
+            ...u,
+            [msg.conversation_id]: (u[msg.conversation_id] ?? 0) + 1,
+          }));
+        }
+        if (msg.conversation_id !== active || document.hidden) {
+          const other =
+            convRef.current.find((c) => c.id === msg.conversation_id)
+              ?.other_user_id ?? msg.sender_id;
+          alerts.fire({
+            title: `New message · ${shortId(other)}`,
+            body: msg.content,
+            desktop: document.hidden,
+          });
+        }
+      }
+
       const known = convRef.current.some((c) => c.id === msg.conversation_id);
       if (known) {
         setConversations((prev) => bump(prev, msg));
@@ -85,7 +117,7 @@ export function ChatPage() {
         })();
       }
     },
-    [meId, refreshConversations, selectConversation],
+    [meId, alerts, refreshConversations, selectConversation],
   );
 
   const onAuthFail = useCallback(() => {
@@ -101,6 +133,15 @@ export function ChatPage() {
   useEffect(() => {
     void refreshConversations();
   }, [refreshConversations]);
+
+  // Reflect the total unread count in the tab title.
+  useEffect(() => {
+    const total = Object.values(unread).reduce((a, b) => a + b, 0);
+    document.title = total > 0 ? `(${total}) NexChat` : "NexChat";
+    return () => {
+      document.title = "NexChat";
+    };
+  }, [unread]);
 
   function openNewLine(recipientId: string) {
     if (recipientId === meId) {
@@ -169,6 +210,7 @@ export function ChatPage() {
         <LineRail
           conversations={conversations}
           activeId={activeId}
+          unread={unread}
           onSelect={(id) => void selectConversation(id)}
           onNewLine={openNewLine}
         />
