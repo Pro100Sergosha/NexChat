@@ -6,11 +6,18 @@ import styles from "./LineRail.module.css";
 interface Props {
   conversations: ConversationOut[];
   activeId: number | null;
+  unread: Record<number, number>;
   onSelect: (id: number) => void;
   onNewLine: (recipientId: string) => void;
 }
 
-export function LineRail({ conversations, activeId, onSelect, onNewLine }: Props) {
+export function LineRail({
+  conversations,
+  activeId,
+  unread,
+  onSelect,
+  onNewLine,
+}: Props) {
   const [opening, setOpening] = useState(false);
   const [recipient, setRecipient] = useState("");
 
@@ -65,6 +72,7 @@ export function LineRail({ conversations, activeId, onSelect, onNewLine }: Props
         )}
         {conversations.map((c) => {
           const on = c.id === activeId;
+          const count = unread[c.id] ?? 0;
           return (
             <li key={c.id}>
               <button
@@ -80,6 +88,11 @@ export function LineRail({ conversations, activeId, onSelect, onNewLine }: Props
                   CH.{String(c.id).padStart(3, "0")}
                 </span>
                 <span className={styles.rowParty}>{shortId(c.other_user_id)}</span>
+                {count > 0 && (
+                  <span className={styles.badge} aria-label={`${count} unread`}>
+                    {count > 99 ? "99+" : count}
+                  </span>
+                )}
                 <span className={styles.rowTime}>{railTime(c.last_message_at)}</span>
               </button>
             </li>

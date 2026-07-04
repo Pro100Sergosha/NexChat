@@ -87,7 +87,7 @@
 .rowOn {
   width: 100%;
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto auto;
   align-items: center;
   gap: var(--sp-2);
   padding: var(--sp-3) var(--sp-4);
@@ -134,4 +134,19 @@
   font-family: var(--font-mono);
   font-size: var(--step-xs);
   color: var(--muted);
+}
+
+/* Unread count — live signal pill */
+.badge {
+  min-width: 1.5em;
+  padding: 1px var(--sp-1);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--bg);
+  background: var(--signal);
+  border-radius: 999px;
+  box-shadow: 0 0 8px -2px var(--signal-glow);
 }
