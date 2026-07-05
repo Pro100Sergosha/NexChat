@@ -27,6 +27,36 @@
 - Tests first, always: write the failing test (red) before the implementation,
   then make it pass (green). Never write implementation first and back-fill
   tests. See `.claude/TESTING.md` for the full TDD convention.
+- Every service logs through stdlib `logging` — a module-level
+  `logger = logging.getLogger(__name__)`, never `print`, never a bespoke
+  logger. See `.claude/backend/style.md` for levels and what to log where.
+- Any non-obvious function gets a docstring explaining *why* / the invariant —
+  see the Docstrings section in `.claude/backend/style.md`. When you touch a
+  complex function that lacks one, add it as part of the change.
+
+## Delegating complex work to agents
+
+Don't hand-build large or intricate features single-threaded when they can be
+decomposed and farmed out. Prefer spawning agents (via `ruflo`) for such work.
+
+- **What to delegate**: multi-file features, whole-layer scaffolding (a new
+  `core/<domain>/` + its `infra/` impls + tests), broad refactors, anything that
+  fans out into independent, well-scoped subtasks.
+- **What to keep inline**: single-file edits, doc tweaks, architectural
+  decisions, wiring/merging the agents' output, and final review.
+- **Model tier**: these subtasks are mechanical once specified — run the agents
+  on a cheaper/weaker model. Spend the strong model on the spec, the decomposition,
+  and the integration/review, not on the boilerplate.
+- **Always specify the contract up front**: point each agent at `.claude/` (this
+  file, `TESTING.md`, `backend/style.md`, the service doc) so its output matches
+  conventions. TDD still holds — the agent writes the red test before the impl.
+- **You own the merge**: agents produce; you reconcile, run the suite, and don't
+  commit anything you haven't reviewed.
+- **Question the complexity first**: before delegating a big build, run it past
+  the `ponytail` skill — it forces the laziest solution that works (stdlib over a
+  dep, native feature over custom code, one line over fifty, or dropping the task
+  as YAGNI). Often the "complex" feature shrinks enough to not need agents at all.
+  Feed the agents the trimmed scope, not the original over-engineered one.
 
 ## When to update .claude/ docs
 
