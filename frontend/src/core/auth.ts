@@ -59,6 +59,48 @@ export function me(): Promise<UserResponse> {
   return apiFetch<UserResponse>(`${API_AUTH}/me`);
 }
 
+/**
+ * Change the password for the logged-in caller. The backend mints a fresh pair
+ * (the caller stays logged in even when other sessions are revoked), so we swap
+ * the stored tokens. Wrong current password → ApiError `invalid_credentials`.
+ */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+  logoutOtherSessions: boolean,
+): Promise<void> {
+  const pair = await apiFetch<TokenPair>(`${API_AUTH}/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+      logout_other_sessions: logoutOtherSessions,
+    }),
+  });
+  setTokens(pair);
+}
+
+/** Request a reset link. Always 202 (never reveals whether the address exists). */
+export function forgotPassword(email: string): Promise<void> {
+  return apiFetch<void>(`${API_AUTH}/forgot-password`, {
+    method: "POST",
+    auth: false,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+}
+
+/** Redeem a single-use reset token from the emailed link → 204. */
+export function resetPassword(token: string, newPassword: string): Promise<void> {
+  return apiFetch<void>(`${API_AUTH}/reset-password`, {
+    method: "POST",
+    auth: false,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+}
+
 /** Revoke both tokens server-side, then drop the local session. */
 export async function logout(): Promise<void> {
   const refresh_token = getRefresh();
