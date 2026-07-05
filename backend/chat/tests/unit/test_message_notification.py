@@ -155,9 +155,9 @@ class TestMessageNotification:
         publisher = FakePublisher()
 
         service = _service(conv_repo, msg_repo, publisher)
-        from app.core.chat.exceptions import MessageContentEmpty
-
         import pytest
+
+        from app.core.chat.exceptions import MessageContentEmpty
 
         with pytest.raises(MessageContentEmpty):
             await service.send_message(
