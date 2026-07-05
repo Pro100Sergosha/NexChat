@@ -11,6 +11,8 @@ from app.core.config import Settings
 
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
+VERIFY_TOKEN_TYPE = "verify"
+RESET_TOKEN_TYPE = "reset"
 
 # bcrypt hashes at most the first 72 bytes of the input; longer secrets are
 # truncated here to avoid the ValueError raised by bcrypt >= 5 on oversized input.
@@ -38,19 +40,32 @@ class TokenService:
         self._algorithm = settings.jwt_algorithm
         self._access_ttl = timedelta(minutes=settings.jwt_access_token_expire_minutes)
         self._refresh_ttl = timedelta(days=settings.jwt_refresh_token_expire_days)
+        self._verify_ttl = timedelta(hours=settings.verify_token_expire_hours)
+        self._reset_ttl = timedelta(hours=settings.reset_token_expire_hours)
 
-    def create_access(self, user_id: str) -> str:
-        return self._create(user_id, ACCESS_TOKEN_TYPE, self._access_ttl)
+    def create_access(self, user_id: str, token_version: int = 0) -> str:
+        return self._create(user_id, ACCESS_TOKEN_TYPE, self._access_ttl, token_version)
 
-    def create_refresh(self, user_id: str) -> str:
-        return self._create(user_id, REFRESH_TOKEN_TYPE, self._refresh_ttl)
+    def create_refresh(self, user_id: str, token_version: int = 0) -> str:
+        return self._create(
+            user_id, REFRESH_TOKEN_TYPE, self._refresh_ttl, token_version
+        )
 
-    def _create(self, user_id: str, token_type: str, ttl: timedelta) -> str:
+    def create_verify(self, user_id: str) -> str:
+        return self._create(user_id, VERIFY_TOKEN_TYPE, self._verify_ttl)
+
+    def create_reset(self, user_id: str) -> str:
+        return self._create(user_id, RESET_TOKEN_TYPE, self._reset_ttl)
+
+    def _create(
+        self, user_id: str, token_type: str, ttl: timedelta, token_version: int = 0
+    ) -> str:
         now = datetime.now(UTC)
         claims = {
             "sub": user_id,
             "jti": uuid4().hex,
             "type": token_type,
+            "ver": token_version,
             "iat": now,
             "exp": now + ttl,
         }

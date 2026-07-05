@@ -40,6 +40,42 @@ async def test_login_email_is_case_insensitive(client):
 
 
 # ---------------------------------------------------------------------------
+# email verification gate — unverified accounts can't log in
+# ---------------------------------------------------------------------------
+
+
+async def test_login_unverified_email_is_forbidden(client):
+    ac, db, _ = client
+    _, password = await make_user(
+        db, email="unverified@example.com", email_verified=False
+    )
+    resp = await ac.post(
+        "/login", data={"username": "unverified@example.com", "password": password}
+    )
+    assert_error(resp, 403, "email_not_verified")
+
+
+async def test_login_verified_email_succeeds(client):
+    ac, db, _ = client
+    _, password = await make_user(db, email="verified@example.com", email_verified=True)
+    resp = await ac.post(
+        "/login", data={"username": "verified@example.com", "password": password}
+    )
+    assert resp.status_code == 200
+
+
+async def test_login_wrong_password_on_unverified_hides_the_gate(client):
+    """A wrong password on an unverified account must look like any bad login."""
+    ac, db, _ = client
+    await make_user(db, email="unverified@example.com", email_verified=False)
+    resp = await ac.post(
+        "/login",
+        data={"username": "unverified@example.com", "password": "wrong-password"},
+    )
+    assert_error(resp, 401, "invalid_credentials")
+
+
+# ---------------------------------------------------------------------------
 # invalid credentials — identical error for both causes
 # ---------------------------------------------------------------------------
 

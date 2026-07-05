@@ -55,3 +55,24 @@ class TooManyAttempts(AppException):
 
     code = "too_many_attempts"
     message = "Too many failed login attempts. Try again later"
+
+
+class EmailNotVerified(AppException):
+    """Raised on login when the account's email has not been confirmed yet."""
+
+    code = "email_not_verified"
+    message = "Email address has not been verified"
+
+
+class EmailAlreadyVerified(AppException):
+    """Raised when a verification link is reused after the email is confirmed."""
+
+    code = "email_already_verified"
+    message = "Email address has already been verified"
+
+
+class UsernameTaken(AppException):
+    """Raised when registering or switching to a username already in use."""
+
+    code = "username_taken"
+    message = "This username is already taken"

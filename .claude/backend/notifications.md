@@ -118,10 +118,10 @@ isn't supported).
 
 - `chat` should publish a `NotificationEvent` to the broker on new message
   (preferred), or call `POST /notifications` with the `X-Service-Token`.
-- `auth` should publish a `NotificationEvent` with a forced `email` (+ verify
-  link in the body) on registration, and own the `email_verified` flag +
-  `POST /verify-email`. The notifications side (forced-email channel) is ready;
-  the auth side is not built yet.
+- ~~`auth` publishes a forced-`email` `NotificationEvent` on registration~~ —
+  **done**: `auth` owns the `email_verified` flag, `POST /verify-email`, and
+  `POST /resend-verification`, and publishes the verification email through this
+  service's forced-email channel (see `.claude/backend/auth.md`).
 - Opt-in **email subscription** for regular (non-forced) notifications: a stored
   per-user address the pipeline sends to when the event has no forced `email`.
   Deferred — not built yet.

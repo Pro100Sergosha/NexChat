@@ -5,6 +5,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.core.auth.exceptions import (
+    EmailAlreadyVerified,
+    EmailNotVerified,
     InvalidCredentials,
     NotAuthenticated,
     TokenExpired,
@@ -12,6 +14,7 @@ from app.core.auth.exceptions import (
     TokenRevoked,
     TooManyAttempts,
     UserAlreadyExists,
+    UsernameTaken,
     UserNotFound,
 )
 from app.core.exception import AppException
@@ -25,6 +28,9 @@ _STATUS_MAP: dict[type[AppException], int] = {
     TokenRevoked: 401,
     NotAuthenticated: 401,
     TooManyAttempts: 429,
+    EmailNotVerified: 403,
+    EmailAlreadyVerified: 409,
+    UsernameTaken: 409,
 }
 
 _SKIP_LOC_PARTS = {"body", "query", "path", "header", "cookie"}
