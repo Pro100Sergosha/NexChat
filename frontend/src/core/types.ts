@@ -46,6 +46,26 @@ export interface WSSendMessage {
   conversation_id?: number;
 }
 
+// Notifications service — mirror NotificationResponse / DeviceTokenResponse.
+export interface NotificationItem {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  read: boolean;
+  created_at: string;
+}
+
+export type DevicePlatform = "web" | "android" | "ios";
+
+export interface DeviceToken {
+  id: string;
+  token: string;
+  platform: string;
+}
+
 // Every backend error body is { code, message }.
 export interface ApiErrorBody {
   code: string;
