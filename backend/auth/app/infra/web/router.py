@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Security, status
+from fastapi import APIRouter, Depends, Response, Security, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.auth.model import User
@@ -8,8 +8,10 @@ from app.core.auth.schemas import (
     LogoutRequest,
     RefreshRequest,
     RegisterRequest,
+    ResendVerificationRequest,
     TokenPair,
     UserResponse,
+    VerifyEmailRequest,
 )
 from app.core.auth.service import AuthService
 from app.infra.web import handler
@@ -42,6 +44,20 @@ async def login(
     service: ServiceDep,
 ) -> TokenPair:
     return await handler.login(form.username, form.password, service)
+
+
+@router.post("/verify-email", status_code=status.HTTP_204_NO_CONTENT)
+async def verify_email(request: VerifyEmailRequest, service: ServiceDep) -> None:
+    await handler.verify_email(request, service)
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    request: ResendVerificationRequest, service: ServiceDep
+) -> Response:
+    await handler.resend_verification(request, service)
+    # 202 with an empty body — never reveal whether the address existed.
+    return Response(status_code=status.HTTP_202_ACCEPTED)
 
 
 @router.post("/refresh")

@@ -9,12 +9,14 @@ from app.core.auth.exceptions import NotAuthenticated, TokenInvalid, TokenRevoke
 from app.core.auth.model import User
 from app.core.auth.repository import (
     LoginRateLimiter,
+    NotificationPublisher,
     TokenBlacklistRepository,
     UserRepository,
 )
 from app.core.auth.security import ACCESS_TOKEN_TYPE, PasswordHasher, TokenService
 from app.core.auth.service import AuthService
 from app.core.config import settings
+from app.infra.broker.publisher import RabbitMQPublisher
 from app.infra.database.config import get_session
 from app.infra.database.repositories import SqlAlchemyUserRepository
 from app.infra.redis.blacklist import RedisTokenBlacklist
@@ -47,14 +49,27 @@ def get_rate_limiter() -> LoginRateLimiter:
     return RedisLoginRateLimiter(redis_client)
 
 
+def get_notification_publisher() -> NotificationPublisher:
+    return RabbitMQPublisher(settings)
+
+
 def get_auth_service(
     user_repo: Annotated[UserRepository, Depends(get_user_repository)],
     blacklist: Annotated[TokenBlacklistRepository, Depends(get_blacklist)],
     tokens: Annotated[TokenService, Depends(get_token_service)],
     hasher: Annotated[PasswordHasher, Depends(get_password_hasher)],
     rate_limiter: Annotated[LoginRateLimiter, Depends(get_rate_limiter)],
+    publisher: Annotated[NotificationPublisher, Depends(get_notification_publisher)],
 ) -> AuthService:
-    return AuthService(user_repo, blacklist, tokens, hasher, rate_limiter)
+    return AuthService(
+        user_repo,
+        blacklist,
+        tokens,
+        hasher,
+        rate_limiter,
+        publisher,
+        settings.EMAIL_VERIFY_URL_BASE,
+    )
 
 
 # Wired only so Swagger UI renders the "Authorize" button with a password-flow

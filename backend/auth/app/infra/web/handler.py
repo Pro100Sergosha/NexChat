@@ -3,8 +3,10 @@ from app.core.auth.schemas import (
     LogoutRequest,
     RefreshRequest,
     RegisterRequest,
+    ResendVerificationRequest,
     TokenPair,
     UserResponse,
+    VerifyEmailRequest,
 )
 from app.core.auth.service import AuthService
 
@@ -12,6 +14,16 @@ from app.core.auth.service import AuthService
 async def register(request: RegisterRequest, service: AuthService) -> UserResponse:
     user = await service.register(request.email, request.password)
     return UserResponse.model_validate(user)
+
+
+async def verify_email(request: VerifyEmailRequest, service: AuthService) -> None:
+    await service.verify_email(request.token)
+
+
+async def resend_verification(
+    request: ResendVerificationRequest, service: AuthService
+) -> None:
+    await service.resend_verification(request.email)
 
 
 async def login(email: str, password: str, service: AuthService) -> TokenPair:
