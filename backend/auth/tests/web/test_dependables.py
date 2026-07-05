@@ -64,6 +64,7 @@ def _seeded_repo() -> tuple[InMemoryUserRepository, User]:
             email="dep@example.com",
             hashed_password=PasswordHasher().hash("password123"),
             created_at=datetime.now(UTC),
+            email_verified=True,
         )
     )
     return repo, user

@@ -23,6 +23,27 @@ async def test_register_success_returns_201_with_user(client):
     assert "id" in body
 
 
+async def test_register_starts_unverified(client):
+    ac, _, _ = client
+    resp = await ac.post(
+        "/register", json={"email": "new@example.com", "password": "password123!"}
+    )
+    assert resp.json()["email_verified"] is False
+
+
+async def test_register_sends_verification_email_with_token_link(client, publisher):
+    ac, _, _ = client
+    resp = await ac.post(
+        "/register", json={"email": "new@example.com", "password": "password123!"}
+    )
+    assert resp.status_code == 201
+    assert len(publisher.calls) == 1
+    call = publisher.calls[0]
+    assert call["email"] == "new@example.com"
+    assert call["user_id"] == resp.json()["id"]
+    assert "token=" in call["verify_url"]
+
+
 async def test_register_never_leaks_password_material(client):
     ac, _, _ = client
     resp = await ac.post(

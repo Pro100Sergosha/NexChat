@@ -52,6 +52,18 @@ ERROR_CATALOG = [
         "too_many_attempts",
         "Too many failed login attempts. Try again later",
     ),
+    (
+        "EmailNotVerified",
+        403,
+        "email_not_verified",
+        "Email address has not been verified",
+    ),
+    (
+        "EmailAlreadyVerified",
+        409,
+        "email_already_verified",
+        "Email address has already been verified",
+    ),
 ]
 
 

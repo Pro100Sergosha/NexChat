@@ -6,6 +6,8 @@ import pytest
 from jose import jwt
 
 from app.core.auth.exceptions import (
+    EmailAlreadyVerified,
+    EmailNotVerified,
     InvalidCredentials,
     TokenExpired,
     TokenInvalid,
@@ -16,20 +18,31 @@ from app.core.auth.exceptions import (
 from app.core.auth.model import User
 from app.core.auth.security import (
     REFRESH_TOKEN_TYPE,
+    VERIFY_TOKEN_TYPE,
     PasswordHasher,
     TokenService,
 )
 from app.core.auth.service import AuthService
 from app.core.config import settings
-from tests.conftest import FakeBlacklist, FakeLoginRateLimiter
+from tests.conftest import (
+    FakeBlacklist,
+    FakeLoginRateLimiter,
+    FakeNotificationPublisher,
+    InMemoryUserRepository,
+)
 
 
-def _user(email: str = "user@example.com", password: str = "password123") -> User:
+def _user(
+    email: str = "user@example.com",
+    password: str = "password123",
+    email_verified: bool = True,
+) -> User:
     return User(
         id=uuid4(),
         email=email,
         hashed_password=PasswordHasher().hash(password),
         created_at=datetime.now(UTC),
+        email_verified=email_verified,
     )
 
 
@@ -37,7 +50,9 @@ def _service(
     user_repo: AsyncMock,
     blacklist=None,
     rate_limiter=None,
+    publisher=None,
     max_login_attempts: int = 5,
+    max_resend_attempts: int = 3,
 ) -> AuthService:
     return AuthService(
         user_repo=user_repo,
@@ -45,7 +60,10 @@ def _service(
         tokens=TokenService(settings),
         hasher=PasswordHasher(),
         rate_limiter=rate_limiter or FakeLoginRateLimiter(),
+        publisher=publisher or FakeNotificationPublisher(),
+        verify_url_base="https://app.test/verify-email",
         max_login_attempts=max_login_attempts,
+        max_resend_attempts=max_resend_attempts,
     )
 
 
@@ -164,6 +182,7 @@ class TestLogin:
             email="user@example.com",
             hashed_password="not-a-bcrypt-hash",
             created_at=datetime.now(UTC),
+            email_verified=True,
         )
         repo.get_by_email.return_value = broken
 
@@ -400,3 +419,201 @@ class TestRevoke:
     async def test_missing_exp_is_skipped_quietly(self):
         await self.service._revoke({"jti": "some-jti"})  # no crash
         assert await self.blacklist.is_revoked("some-jti") is False
+
+
+# ---------------------------------------------------------------------------
+# email verification — register publishes, login gates, verify confirms
+# ---------------------------------------------------------------------------
+
+
+class TestRegisterSendsVerification:
+    async def test_publishes_verification_email_with_token_link(self):
+        repo = AsyncMock()
+        repo.get_by_email.return_value = None
+        created = _user(email_verified=False)
+        repo.create.return_value = created
+        publisher = FakeNotificationPublisher()
+
+        service = _service(repo, publisher=publisher)
+        await service.register("new@example.com", "password123")
+
+        assert len(publisher.calls) == 1
+        call = publisher.calls[0]
+        assert call["email"] == created.email
+        assert call["user_id"] == str(created.id)
+        # the link carries a real verify JWT the user can redeem
+        token = call["verify_url"].split("token=", 1)[1]
+        claims = TokenService(settings).decode(token)
+        assert claims["type"] == VERIFY_TOKEN_TYPE
+        assert claims["sub"] == str(created.id)
+
+    async def test_publish_failure_does_not_fail_registration(self):
+        repo = AsyncMock()
+        repo.get_by_email.return_value = None
+        created = _user(email_verified=False)
+        repo.create.return_value = created
+        publisher = AsyncMock()
+        publisher.publish_verification.side_effect = RuntimeError("broker down")
+
+        service = _service(repo, publisher=publisher)
+        result = await service.register("new@example.com", "password123")
+
+        assert result is created  # best-effort: the user is still created
+
+
+class TestLoginEmailGate:
+    async def test_unverified_user_cannot_login(self):
+        repo = AsyncMock()
+        repo.get_by_email.return_value = _user(
+            password="password123", email_verified=False
+        )
+        service = _service(repo)
+        with pytest.raises(EmailNotVerified):
+            await service.login("user@example.com", "password123")
+
+    async def test_verified_user_logs_in(self):
+        repo = AsyncMock()
+        repo.get_by_email.return_value = _user(
+            password="password123", email_verified=True
+        )
+        service = _service(repo)
+        pair = await service.login("user@example.com", "password123")
+        assert pair.access_token
+
+    async def test_wrong_password_on_unverified_still_invalid_credentials(self):
+        """The verified gate must sit behind the password check (no enumeration)."""
+        repo = AsyncMock()
+        repo.get_by_email.return_value = _user(
+            password="password123", email_verified=False
+        )
+        service = _service(repo)
+        with pytest.raises(InvalidCredentials):
+            await service.login("user@example.com", "wrong-password")
+
+
+class TestVerifyEmail:
+    def _seed(
+        self, *, email_verified: bool = False
+    ) -> tuple[InMemoryUserRepository, User]:
+        repo = InMemoryUserRepository()
+        user = repo.seed(_user(email_verified=email_verified))
+        return repo, user
+
+    async def test_valid_token_marks_verified_and_revokes(self):
+        repo, user = self._seed()
+        blacklist = FakeBlacklist()
+        service = _service(AsyncMock(), blacklist)
+        service._users = repo  # use the in-memory repo for get_by_id/set
+        token = TokenService(settings).create_verify(str(user.id))
+
+        await service.verify_email(token)
+
+        assert (await repo.get_by_id(user.id)).email_verified is True
+        jti = TokenService(settings).decode(token)["jti"]
+        assert await blacklist.is_revoked(jti) is True
+
+    async def test_reused_token_raises_already_verified(self):
+        repo, user = self._seed()
+        service = _service(AsyncMock(), FakeBlacklist())
+        service._users = repo
+        token = TokenService(settings).create_verify(str(user.id))
+
+        await service.verify_email(token)
+        with pytest.raises(EmailAlreadyVerified):
+            await service.verify_email(token)
+
+    async def test_already_verified_user_raises(self):
+        repo, user = self._seed(email_verified=True)
+        service = _service(AsyncMock())
+        service._users = repo
+        token = TokenService(settings).create_verify(str(user.id))
+        with pytest.raises(EmailAlreadyVerified):
+            await service.verify_email(token)
+
+    async def test_access_token_rejected(self):
+        repo, user = self._seed()
+        service = _service(AsyncMock())
+        service._users = repo
+        access = TokenService(settings).create_access(str(user.id))
+        with pytest.raises(TokenInvalid):
+            await service.verify_email(access)
+
+    async def test_garbage_token_raises_invalid(self):
+        service = _service(AsyncMock())
+        with pytest.raises(TokenInvalid):
+            await service.verify_email("not-a-jwt")
+
+    async def test_expired_token_raises_expired(self):
+        repo, user = self._seed()
+        service = _service(AsyncMock())
+        service._users = repo
+        now = datetime.now(UTC)
+        expired = jwt.encode(
+            {
+                "sub": str(user.id),
+                "jti": uuid4().hex,
+                "type": VERIFY_TOKEN_TYPE,
+                "iat": now - timedelta(days=2),
+                "exp": now - timedelta(days=1),
+            },
+            settings.JWT_SECRET_KEY,
+            algorithm=settings.jwt_algorithm,
+        )
+        with pytest.raises(TokenExpired):
+            await service.verify_email(expired)
+
+    async def test_unknown_subject_raises_invalid(self):
+        service = _service(AsyncMock())
+        service._users = InMemoryUserRepository()  # empty
+        ghost = TokenService(settings).create_verify(str(uuid4()))
+        with pytest.raises(TokenInvalid):
+            await service.verify_email(ghost)
+
+
+class TestResendVerification:
+    async def test_resends_for_unverified_user(self):
+        repo = InMemoryUserRepository()
+        user = repo.seed(_user(email="r@example.com", email_verified=False))
+        publisher = FakeNotificationPublisher()
+        service = _service(AsyncMock(), publisher=publisher)
+        service._users = repo
+
+        await service.resend_verification("r@example.com")
+
+        assert len(publisher.calls) == 1
+        assert publisher.calls[0]["user_id"] == str(user.id)
+
+    async def test_no_send_for_already_verified(self):
+        repo = InMemoryUserRepository()
+        repo.seed(_user(email="v@example.com", email_verified=True))
+        publisher = FakeNotificationPublisher()
+        service = _service(AsyncMock(), publisher=publisher)
+        service._users = repo
+
+        await service.resend_verification("v@example.com")
+        assert publisher.calls == []
+
+    async def test_no_send_for_unknown_email(self):
+        publisher = FakeNotificationPublisher()
+        service = _service(AsyncMock(), publisher=publisher)
+        service._users = InMemoryUserRepository()
+
+        await service.resend_verification("ghost@example.com")
+        assert publisher.calls == []
+
+    async def test_throttled_after_max_attempts(self):
+        repo = InMemoryUserRepository()
+        repo.seed(_user(email="r@example.com", email_verified=False))
+        publisher = FakeNotificationPublisher()
+        limiter = FakeLoginRateLimiter()
+        service = _service(
+            AsyncMock(),
+            rate_limiter=limiter,
+            publisher=publisher,
+            max_resend_attempts=2,
+        )
+        service._users = repo
+
+        for _ in range(5):
+            await service.resend_verification("r@example.com")
+        assert len(publisher.calls) == 2  # capped at the throttle limit

@@ -2,8 +2,10 @@ import os
 
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key")
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -17,6 +19,7 @@ from sqlalchemy.pool import StaticPool
 from app.core.auth.model import User
 from app.core.auth.repository import (
     LoginRateLimiter,
+    NotificationPublisher,
     TokenBlacklistRepository,
     UserRepository,
 )
@@ -25,7 +28,11 @@ from app.core.config import settings
 from app.infra.database.base import Base
 from app.infra.database.config import get_session
 from app.infra.database.models import UserORM
-from app.infra.web.dependables import get_blacklist, get_rate_limiter
+from app.infra.web.dependables import (
+    get_blacklist,
+    get_notification_publisher,
+    get_rate_limiter,
+)
 from app.runner.setup import create_app
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -93,8 +100,28 @@ class InMemoryUserRepository(UserRepository):
             email=email,
             hashed_password=hashed_password,
             created_at=datetime.now(UTC),
+            email_verified=False,
         )
         return self.seed(user)
+
+    async def set_email_verified(self, user_id: UUID) -> None:
+        user = self._by_id.get(user_id)
+        if user is not None:
+            self._by_id[user_id] = replace(user, email_verified=True)
+
+
+class FakeNotificationPublisher(NotificationPublisher):
+    """Records each verification-email publish so tests can assert on it."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, str]] = []
+
+    async def publish_verification(
+        self, *, user_id: str, email: str, verify_url: str
+    ) -> None:
+        self.calls.append(
+            {"user_id": user_id, "email": email, "verify_url": verify_url}
+        )
 
 
 @pytest.fixture
@@ -117,8 +144,14 @@ async def db_session():
         await conn.run_sync(Base.metadata.drop_all)
 
 
+@pytest.fixture
+def publisher() -> "FakeNotificationPublisher":
+    """The verification-email spy wired into the ``client`` app (same instance)."""
+    return FakeNotificationPublisher()
+
+
 @pytest_asyncio.fixture
-async def client(db_session):
+async def client(db_session, publisher):
     _blacklist = FakeBlacklist()
     _rate_limiter = FakeLoginRateLimiter()
 
@@ -131,10 +164,14 @@ async def client(db_session):
     def override_rate_limiter():
         return _rate_limiter
 
+    def override_publisher():
+        return publisher
+
     app = create_app()
     app.dependency_overrides[get_session] = override_get_session
     app.dependency_overrides[get_blacklist] = override_blacklist
     app.dependency_overrides[get_rate_limiter] = override_rate_limiter
+    app.dependency_overrides[get_notification_publisher] = override_publisher
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -149,10 +186,18 @@ async def make_user(
     *,
     email: str = "user@example.com",
     password: str = "password123",
+    email_verified: bool = True,
 ) -> tuple[User, str]:
-    """Insert a user with a real bcrypt hash; return (user, plaintext_password)."""
+    """Insert a user with a real bcrypt hash; return (user, plaintext_password).
+
+    Defaults to verified so login-centric tests aren't blocked by the email gate;
+    pass ``email_verified=False`` to exercise the unverified path.
+    """
     orm = UserORM(
-        id=uuid4(), email=email, hashed_password=PasswordHasher().hash(password)
+        id=uuid4(),
+        email=email,
+        hashed_password=PasswordHasher().hash(password),
+        email_verified=email_verified,
     )
     db.add(orm)
     await db.commit()
@@ -162,6 +207,7 @@ async def make_user(
         email=orm.email,
         hashed_password=orm.hashed_password,
         created_at=orm.created_at,
+        email_verified=orm.email_verified,
     )
     return user, password
 
