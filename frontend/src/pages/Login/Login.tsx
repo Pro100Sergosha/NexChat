@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { ApiError } from "@/core/api";
-import { resendVerification } from "@/core/auth";
+import { forgotPassword, resendVerification } from "@/core/auth";
 import { evaluatePassword } from "@/core/password";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 import { PasswordField } from "@/components/PasswordField/PasswordField";
@@ -27,6 +27,9 @@ export function LoginPage() {
   const [sent, setSent] = useState(false);
   // login gated by an unverified email → offer to re-send the link.
   const [unverified, setUnverified] = useState(false);
+  // forgot-password sub-view (email → reset link), and its post-submit ack.
+  const [forgot, setForgot] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -70,6 +73,28 @@ export function LoginPage() {
     }
   }
 
+  async function submitForgot(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await forgotPassword(email);
+    } catch {
+      // Anti-enumeration: the response is identical regardless — even a network
+      // hiccup shouldn't hint at existence, so we ack the same way.
+    } finally {
+      setBusy(false);
+      setForgotSent(true);
+    }
+  }
+
+  function openForgot() {
+    setForgot(true);
+    setForgotSent(false);
+    setError(false);
+    setUnverified(false);
+    setReadout(null);
+  }
+
   function switchMode(next: Mode) {
     if (next === mode) return;
     setMode(next);
@@ -80,6 +105,8 @@ export function LoginPage() {
 
   function backToSignIn() {
     setSent(false);
+    setForgot(false);
+    setForgotSent(false);
     setMode("login");
     setPassword("");
     setError(false);
@@ -106,7 +133,43 @@ export function LoginPage() {
           <p className={styles.sub}>Patch into the line.</p>
         </header>
 
-        {sent ? (
+        {forgot ? (
+          forgotSent ? (
+            <div className={styles.form}>
+              <p className={styles.sent}>
+                If an account exists for{" "}
+                <code className={styles.sentAddr}>{email}</code>, a reset link is on
+                its way. Open it to choose a new password.
+              </p>
+              <button className={styles.linkBtn} type="button" onClick={backToSignIn}>
+                ‹ Back to sign in
+              </button>
+            </div>
+          ) : (
+            <form className={styles.form} onSubmit={submitForgot}>
+              <p className={styles.sent}>
+                Enter your email and we&apos;ll send a link to reset your password.
+              </p>
+              <label className={styles.field}>
+                <span className="op-label">Email</span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@exchange.net"
+                />
+              </label>
+              <button className={styles.connect} type="submit" disabled={busy}>
+                Send reset link
+              </button>
+              <button className={styles.linkBtn} type="button" onClick={backToSignIn}>
+                ‹ Back to sign in
+              </button>
+            </form>
+          )
+        ) : sent ? (
           <div className={styles.form}>
             <p className={styles.sent}>
               Verification link sent to <code className={styles.sentAddr}>{email}</code>.
@@ -236,6 +299,12 @@ export function LoginPage() {
                 disabled={busy}
               >
                 Re-send verification link
+              </button>
+            )}
+
+            {mode === "login" && !unverified && (
+              <button className={styles.linkBtn} type="button" onClick={openForgot}>
+                Forgot password?
               </button>
             )}
           </>
