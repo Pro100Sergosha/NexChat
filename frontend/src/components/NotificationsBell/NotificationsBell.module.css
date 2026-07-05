@@ -1,0 +1,135 @@
+.wrap {
+  position: relative;
+}
+
+.bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: var(--step-md);
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.bell:hover,
+.bell[aria-expanded="true"] {
+  color: var(--cream);
+  border-color: var(--line-strong);
+}
+
+.badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--bg);
+  background: var(--signal);
+  border-radius: 999px;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + var(--sp-2));
+  right: 0;
+  z-index: 40;
+  width: min(88vw, 22rem);
+  max-height: 70vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-plate);
+}
+
+.panelHead {
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--panel-raised);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--sp-5) var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  color: var(--faint);
+  text-align: center;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item,
+.itemUnread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  text-align: left;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.15s var(--ease);
+}
+
+.item:hover,
+.itemUnread:hover {
+  background: color-mix(in srgb, var(--cream) 4%, transparent);
+}
+
+/* Unread rows carry a cyan spine and a brighter title */
+.itemUnread {
+  border-left: 2px solid var(--signal);
+}
+
+.itemTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.itemTitle {
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.itemUnread .itemTitle {
+  color: var(--cream);
+}
+
+.itemTime {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--faint);
+}
+
+.itemBody {
+  font-family: var(--font-sans);
+  font-size: var(--step-sm);
+  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}

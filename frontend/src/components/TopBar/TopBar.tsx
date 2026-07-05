@@ -2,6 +2,7 @@ import { useState } from "react";
 import { shortId } from "@/core/format";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 import { AlertsToggle } from "@/components/AlertsToggle/AlertsToggle";
+import { NotificationsBell } from "@/components/NotificationsBell/NotificationsBell";
 import { AccountPanel } from "@/components/AccountPanel/AccountPanel";
 import styles from "./TopBar.module.css";
 
@@ -31,6 +32,7 @@ export function TopBar({ meId, meName, meEmail, onLogout }: Props) {
           <code className={styles.youId}>@{meName}</code>
           <code className={styles.youUuid}>{shortId(meId)}</code>
         </div>
+        <NotificationsBell />
         <AlertsToggle />
         <ThemeToggle />
         <button
