@@ -79,6 +79,9 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - SERVICE_TOKEN=${NOTIFICATIONS_SERVICE_TOKEN}
       - FCM_CREDENTIALS_FILE=/app/secrets/serviceAccountKey.json
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-}
     command: sh -c "uv run alembic upgrade head && uv run uvicorn app.runner.asgi:app --host 0.0.0.0 --port 8002 --reload"
     volumes:
       - ./backend/notifications/app:/app/app
