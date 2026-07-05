@@ -17,7 +17,7 @@ interface AuthState {
   phase: Phase;
   user: UserResponse | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -50,12 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [load],
   );
 
+  // Registration leaves the account unverified — login is gated on a confirmed
+  // email, so we stay anon here and the UI prompts the user to check their inbox.
   const signUp = useCallback(
-    async (email: string, password: string) => {
-      await auth.register(email, password);
-      await load();
+    async (email: string, username: string, password: string) => {
+      await auth.register(email, username, password);
     },
-    [load],
+    [],
   );
 
   const signOut = useCallback(async () => {
