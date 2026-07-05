@@ -145,17 +145,24 @@ class AuthService:
             logger.warning("verification email publish failed", exc_info=True)
 
     async def change_password(
-        self, user_id: UUID, current_password: str, new_password: str
+        self,
+        user_id: UUID,
+        current_password: str,
+        new_password: str,
+        logout_other_sessions: bool = True,
     ) -> TokenPair:
         user = await self._users.get_by_id(user_id)
         if user is None or not self._hasher.verify(
             current_password, user.hashed_password
         ):
             raise InvalidCredentials()
-        new_version = await self._set_password(user, new_password)
-        # Issue the fresh pair at the *new* version so the initiator stays logged
-        # in while every token minted at the old version is invalidated.
-        return self._issue_pair(str(user_id), new_version)
+        # Bumping the version invalidates every token minted at the old version
+        # (global logout); keeping it leaves other sessions alive. Either way the
+        # caller gets a fresh pair at the resulting version and stays logged in.
+        version = await self._store_password(
+            user, new_password, bump_version=logout_other_sessions
+        )
+        return self._issue_pair(str(user_id), version)
 
     async def forgot_password(self, email: str) -> None:
         email = email.strip().lower()
@@ -180,7 +187,8 @@ class AuthService:
         user = await self._users.get_by_id(UUID(claims["sub"]))
         if user is None:
             raise TokenInvalid()
-        await self._set_password(user, new_password)  # bumps version → old sessions die
+        # Reset always forces a global logout — the account may be compromised.
+        await self._store_password(user, new_password, bump_version=True)
         await self._revoke(claims)  # single-use
 
     async def change_username(self, user_id: UUID, username: str) -> User:
@@ -206,11 +214,13 @@ class AuthService:
             raise UserNotFound()
         return user
 
-    async def _set_password(self, user: User, new_password: str) -> int:
-        new_version = user.token_version + 1
+    async def _store_password(
+        self, user: User, new_password: str, *, bump_version: bool
+    ) -> int:
+        version = user.token_version + 1 if bump_version else user.token_version
         hashed = self._hasher.hash(new_password)
-        await self._users.update_password(user.id, hashed, new_version)
-        return new_version
+        await self._users.update_password(user.id, hashed, version)
+        return version
 
     async def _send_password_reset(self, user: User) -> None:
         token = self._tokens.create_reset(str(user.id))

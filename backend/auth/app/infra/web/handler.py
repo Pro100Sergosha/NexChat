@@ -37,7 +37,10 @@ async def change_password(
     request: ChangePasswordRequest, user: User, service: AuthService
 ) -> TokenPair:
     return await service.change_password(
-        user.id, request.current_password, request.new_password
+        user.id,
+        request.current_password,
+        request.new_password,
+        request.logout_other_sessions,
     )
 
 

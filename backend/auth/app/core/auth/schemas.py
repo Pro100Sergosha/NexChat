@@ -51,6 +51,9 @@ class ResendVerificationRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8, max_length=128)
+    # Revoke every other outstanding session on change (the caller keeps a fresh
+    # pair). Opt out to leave other devices logged in.
+    logout_other_sessions: bool = True
 
     _v_new = field_validator("new_password")(_validate_password)
 
