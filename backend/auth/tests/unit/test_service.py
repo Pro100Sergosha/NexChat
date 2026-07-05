@@ -665,6 +665,20 @@ class TestChangePassword:
         assert PasswordHasher().verify("newpass456!", stored.hashed_password)
         assert stored.token_version == 1  # bumped → old sessions invalidated
 
+    async def test_keep_other_sessions_does_not_bump_version(self):
+        repo = InMemoryUserRepository()
+        user = repo.seed(_user(password="oldpass123"))
+        service = _service(AsyncMock())
+        service._users = repo
+
+        await service.change_password(
+            user.id, "oldpass123", "newpass456!", logout_other_sessions=False
+        )
+
+        stored = await repo.get_by_id(user.id)
+        assert PasswordHasher().verify("newpass456!", stored.hashed_password)
+        assert stored.token_version == 0  # unchanged → existing sessions survive
+
     async def test_wrong_current_password_raises(self):
         repo = InMemoryUserRepository()
         user = repo.seed(_user(password="oldpass123"))

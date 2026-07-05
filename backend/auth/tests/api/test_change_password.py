@@ -1,10 +1,13 @@
 """POST /change-password — contract:
 
-* Bearer-protected; body ``{current_password, new_password}``.
-* 200 → a fresh ``TokenPair`` (the caller stays logged in on the new session).
+* Bearer-protected; body ``{current_password, new_password,
+  logout_other_sessions?}``.
+* 200 → a fresh ``TokenPair`` (the caller always stays logged in on the new
+  session).
 * Wrong current password → 401 ``invalid_credentials`` (same as a bad login).
-* Changing the password is a **global logout**: every token issued before the
-  change (old access AND old refresh) stops working.
+* ``logout_other_sessions`` (default ``true``) → **global logout**: every token
+  issued before the change (old access AND old refresh) stops working. Set it
+  ``false`` to keep other sessions alive.
 * ``new_password`` obeys the same complexity rules as registration (422).
 """
 
@@ -42,6 +45,24 @@ async def test_new_pair_works_old_access_is_revoked(client):
     # the freshly issued one does
     ok = await ac.get("/me", headers=auth_headers(new_pair["access_token"]))
     assert ok.status_code == 200
+
+
+async def test_keep_other_sessions_leaves_old_tokens_valid(client):
+    ac, db, _ = client
+    pair = await login_tokens(ac, db, email="u@example.com", password="oldpass123")
+    resp = await ac.post(
+        "/change-password",
+        json={
+            "current_password": "oldpass123",
+            "new_password": "newpass456!",
+            "logout_other_sessions": False,
+        },
+        headers=auth_headers(pair["access_token"]),
+    )
+    assert resp.status_code == 200
+    # opting out keeps the pre-change access token working
+    still = await ac.get("/me", headers=auth_headers(pair["access_token"]))
+    assert still.status_code == 200
 
 
 async def test_old_refresh_is_revoked_after_change(client):
