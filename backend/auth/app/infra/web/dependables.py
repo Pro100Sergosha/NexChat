@@ -69,6 +69,7 @@ def get_auth_service(
         rate_limiter,
         publisher,
         settings.EMAIL_VERIFY_URL_BASE,
+        settings.EMAIL_RESET_URL_BASE,
     )
 
 
@@ -104,4 +105,8 @@ async def get_current_user(
     user = await user_repo.get_by_id(UUID(claims["sub"]))
     if user is None:
         raise TokenInvalid()
+    # Global logout: a token minted at an older version (before a password
+    # change/reset) is dead.
+    if claims.get("ver", 0) != user.token_version:
+        raise TokenRevoked()
     return user

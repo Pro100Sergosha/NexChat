@@ -14,6 +14,7 @@ from app.core.auth.exceptions import (
     TokenRevoked,
     TooManyAttempts,
     UserAlreadyExists,
+    UsernameTaken,
     UserNotFound,
 )
 from app.core.exception import AppException
@@ -29,6 +30,7 @@ _STATUS_MAP: dict[type[AppException], int] = {
     TooManyAttempts: 429,
     EmailNotVerified: 403,
     EmailAlreadyVerified: 409,
+    UsernameTaken: 409,
 }
 
 _SKIP_LOC_PARTS = {"body", "query", "path", "header", "cookie"}
