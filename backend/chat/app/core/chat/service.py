@@ -1,3 +1,5 @@
+import logging
+
 from app.core.chat.exceptions import (
     ConversationNotFound,
     MessageContentEmpty,
@@ -6,8 +8,14 @@ from app.core.chat.exceptions import (
     SelfConversationNotAllowed,
 )
 from app.core.chat.model import Conversation, Message
-from app.core.chat.repository import ConversationRepository, MessageRepository
+from app.core.chat.repository import (
+    ConversationRepository,
+    MessageRepository,
+    NotificationPublisher,
+)
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ChatService:
@@ -15,9 +23,11 @@ class ChatService:
         self,
         conversation_repo: ConversationRepository,
         message_repo: MessageRepository,
+        publisher: NotificationPublisher,
     ) -> None:
         self._conversation_repo = conversation_repo
         self._message_repo = message_repo
+        self._publisher = publisher
 
     async def get_or_create_conversation(
         self, user_a_id: str, user_b_id: str
@@ -56,9 +66,34 @@ class ChatService:
                 sender_id, recipient_id
             )
 
-        return await self._message_repo.create(
+        message = await self._message_repo.create(
             conversation_id=conversation.id, sender_id=sender_id, content=content
         )
+        await self._notify_recipient(conversation, message)
+        return message
+
+    async def _notify_recipient(
+        self, conversation: Conversation, message: Message
+    ) -> None:
+        # Always publish to the *other* participant; notifications decides
+        # SSE-vs-FCM from its own presence, so we don't gate on chat sockets here.
+        recipient_id = (
+            conversation.user_b_id
+            if conversation.user_a_id == message.sender_id
+            else conversation.user_a_id
+        )
+        try:
+            await self._publisher.publish_message_notification(
+                recipient_id=recipient_id,
+                sender_id=message.sender_id,
+                conversation_id=conversation.id,
+                message_id=message.id,
+                content=message.content,
+            )
+        except Exception:
+            # Best-effort: a down broker must not fail sending — the message is
+            # already persisted (and broadcast over any live sockets by ws.py).
+            logger.warning("message notification publish failed", exc_info=True)
 
     async def get_conversations_for_user(self, user_id: str) -> list[Conversation]:
         return await self._conversation_repo.list_for_user(user_id)

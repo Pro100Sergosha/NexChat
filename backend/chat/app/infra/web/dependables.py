@@ -4,10 +4,15 @@ from fastapi import Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.chat.exceptions import NotAuthenticated
-from app.core.chat.repository import ConversationRepository, MessageRepository
+from app.core.chat.repository import (
+    ConversationRepository,
+    MessageRepository,
+    NotificationPublisher,
+)
 from app.core.chat.security import TokenVerifier
 from app.core.chat.service import ChatService
 from app.core.config import settings
+from app.infra.broker.publisher import RabbitMQPublisher
 from app.infra.database.config import async_session_factory
 from app.infra.database.repositories import (
     SqlAlchemyConversationRepository,
@@ -18,6 +23,9 @@ from app.infra.redis.connection_manager import ConnectionManager, RedisConnectio
 
 _token_verifier = TokenVerifier(settings)
 _connection_manager = RedisConnectionManager(redis_client)
+# Single long-lived publisher: its connection is opened once at startup and
+# closed at shutdown by the app lifespan (see runner/setup.py).
+_notification_publisher = RabbitMQPublisher(settings.RABBITMQ_URL)
 
 
 async def get_db():
@@ -31,6 +39,10 @@ def get_token_verifier() -> TokenVerifier:
 
 def get_connection_manager() -> ConnectionManager:
     return _connection_manager
+
+
+def get_notification_publisher() -> NotificationPublisher:
+    return _notification_publisher
 
 
 def get_access_token(
@@ -68,5 +80,10 @@ def get_chat_service(
         ConversationRepository, Depends(get_conversation_repository)
     ],
     message_repo: Annotated[MessageRepository, Depends(get_message_repository)],
+    publisher: Annotated[NotificationPublisher, Depends(get_notification_publisher)],
 ) -> ChatService:
-    return ChatService(conversation_repo=conversation_repo, message_repo=message_repo)
+    return ChatService(
+        conversation_repo=conversation_repo,
+        message_repo=message_repo,
+        publisher=publisher,
+    )

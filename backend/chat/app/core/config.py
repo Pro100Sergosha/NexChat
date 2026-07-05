@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
     REDIS_URL: str
+    RABBITMQ_URL: str
 
     JWT_SECRET_KEY: str
     jwt_algorithm: str = "HS256"
