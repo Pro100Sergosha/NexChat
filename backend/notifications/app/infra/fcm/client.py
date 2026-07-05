@@ -1,3 +1,4 @@
+import logging
 import os
 
 import firebase_admin
@@ -7,6 +8,8 @@ from firebase_admin import credentials, messaging
 from app.core.config import Settings
 from app.core.notifications.model import DeviceToken, Notification
 from app.core.notifications.repository import PushSender
+
+logger = logging.getLogger(__name__)
 
 _APP_NAME = "notifications"
 
@@ -24,7 +27,15 @@ class FirebasePushSender(PushSender):
     def __init__(self, settings: Settings) -> None:
         self._app: firebase_admin.App | None = None
         creds_path = settings.FCM_CREDENTIALS_FILE
-        if not creds_path or not os.path.isfile(creds_path):
+        if not creds_path:
+            logger.warning("FCM disabled: FCM_CREDENTIALS_FILE is empty")
+            return
+        if not os.path.isfile(creds_path):
+            logger.warning(
+                "FCM disabled: credentials file not found at %r (cwd=%r)",
+                creds_path,
+                os.getcwd(),
+            )
             return
         cred = credentials.Certificate(creds_path)
         try:
@@ -35,7 +46,11 @@ class FirebasePushSender(PushSender):
     async def send(
         self, tokens: list[DeviceToken], notification: Notification
     ) -> set[str]:
-        if self._app is None or not tokens:
+        if self._app is None:
+            logger.warning("FCM send skipped: sender not initialized (no credentials)")
+            return set()
+        if not tokens:
+            logger.info("FCM send skipped: user has no registered device tokens")
             return set()
         # firebase-admin is blocking — keep the event loop free.
         return await to_thread.run_sync(self._send_sync, tokens, notification)
