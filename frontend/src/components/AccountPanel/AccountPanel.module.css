@@ -1,0 +1,121 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.panel {
+  width: min(100%, var(--board-w));
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-6);
+  box-shadow:
+    0 1px 0 rgba(237, 230, 214, 0.04) inset,
+    var(--shadow-plate);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-5);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: var(--step-lg);
+  letter-spacing: 0.02em;
+  color: var(--cream);
+}
+
+.close {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--step-md);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius);
+  transition: color 0.15s var(--ease);
+}
+
+.close:hover {
+  color: var(--cream);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.check input {
+  accent-color: var(--brass);
+}
+
+.cta {
+  padding: var(--sp-3);
+  background: var(--brass);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: var(--step-sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+  transition: transform 0.12s var(--ease), background 0.18s var(--ease);
+}
+
+.cta:hover:not(:disabled) {
+  background: #cc9a48;
+}
+
+.cta:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.cta:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.ok {
+  margin: 0;
+  display: flex;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  line-height: 1.6;
+  color: var(--signal);
+}
+
+.error {
+  margin: 0;
+  display: flex;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--oxblood-bright);
+}

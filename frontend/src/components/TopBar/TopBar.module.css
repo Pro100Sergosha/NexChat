@@ -57,6 +57,24 @@
   color: var(--faint);
 }
 
+.settings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: var(--step-md);
+  color: var(--muted);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.settings:hover {
+  color: var(--cream);
+  border-color: var(--line-strong);
+}
+
 .logout {
   display: inline-flex;
   align-items: center;
