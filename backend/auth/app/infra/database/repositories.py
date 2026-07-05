@@ -30,6 +30,13 @@ class SqlAlchemyUserRepository(UserRepository):
         await self._session.refresh(orm)
         return self._to_domain(orm)
 
+    async def set_email_verified(self, user_id: UUID) -> None:
+        orm = await self._session.get(UserORM, user_id)
+        if orm is None:
+            return
+        orm.email_verified = True
+        await self._session.commit()
+
     @staticmethod
     def _to_domain(orm: UserORM) -> User:
         return User(
@@ -37,4 +44,5 @@ class SqlAlchemyUserRepository(UserRepository):
             email=orm.email,
             hashed_password=orm.hashed_password,
             created_at=orm.created_at,
+            email_verified=orm.email_verified,
         )

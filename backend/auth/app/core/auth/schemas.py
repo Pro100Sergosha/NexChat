@@ -26,6 +26,14 @@ class RegisterRequest(BaseModel):
         return value
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 
@@ -45,3 +53,4 @@ class UserResponse(BaseModel):
 
     id: UUID
     email: EmailStr
+    email_verified: bool

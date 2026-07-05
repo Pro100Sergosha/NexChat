@@ -9,3 +9,4 @@ class User:
     email: str
     hashed_password: str
     created_at: datetime
+    email_verified: bool
