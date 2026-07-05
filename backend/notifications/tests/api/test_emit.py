@@ -43,6 +43,18 @@ async def test_emit_persists_to_history(client):
     assert items[0]["read"] is False
 
 
+async def test_emit_with_email_delivers_over_email_channel(client):
+    ac, _db, fakes = client
+    body = {**BODY, "email": "user@example.com"}
+
+    resp = await ac.post("/notifications", json=body, headers=service_headers())
+
+    assert resp.status_code == 202
+    assert fakes.broker.published[0].email == "user@example.com"
+    assert len(fakes.email.sent) == 1
+    assert fakes.email.sent[0][0] == "user@example.com"
+
+
 async def test_emit_without_service_token_is_403(client):
     ac, _db, fakes = client
 

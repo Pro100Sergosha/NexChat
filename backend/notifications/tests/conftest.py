@@ -23,6 +23,7 @@ from sqlalchemy.pool import StaticPool
 from app.core.config import settings
 from app.core.notifications.model import DeviceToken, Notification
 from app.core.notifications.repository import (
+    EmailSender,
     EventBus,
     NotificationBroker,
     Presence,
@@ -38,6 +39,7 @@ from app.infra.database.repositories import (
 )
 from app.infra.web.dependables import (
     get_broker,
+    get_email,
     get_event_bus,
     get_presence,
     get_push,
@@ -118,6 +120,16 @@ class FakePush(PushSender):
         return {t.token for t in tokens if t.token in self.invalid_tokens}
 
 
+class FakeEmail(EmailSender):
+    """Records email sends over the forced-email channel."""
+
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, Notification]] = []
+
+    async def send(self, address: str, notification: Notification) -> None:
+        self.sent.append((address, notification))
+
+
 class FakeBroker(NotificationBroker):
     """Runs the registered pipeline handler synchronously on publish, so an
     end-to-end POST persists + routes without a real RabbitMQ/consumer."""
@@ -143,6 +155,7 @@ class Fakes:
     presence: FakePresence
     event_bus: FakeEventBus
     push: FakePush
+    email: FakeEmail
     broker: FakeBroker
 
 
@@ -161,7 +174,7 @@ async def db_session():
 
 @pytest.fixture
 def fakes() -> Fakes:
-    return Fakes(FakePresence(), FakeEventBus(), FakePush(), FakeBroker())
+    return Fakes(FakePresence(), FakeEventBus(), FakePush(), FakeEmail(), FakeBroker())
 
 
 @pytest_asyncio.fixture
@@ -178,6 +191,9 @@ async def client(db_session, fakes):
     def override_push():
         return fakes.push
 
+    def override_email():
+        return fakes.email
+
     def override_broker():
         return fakes.broker
 
@@ -189,6 +205,7 @@ async def client(db_session, fakes):
             presence=fakes.presence,
             event_bus=fakes.event_bus,
             push=fakes.push,
+            email=fakes.email,
         )
         await service.emit(event)
 
@@ -199,6 +216,7 @@ async def client(db_session, fakes):
     app.dependency_overrides[get_presence] = override_presence
     app.dependency_overrides[get_event_bus] = override_event_bus
     app.dependency_overrides[get_push] = override_push
+    app.dependency_overrides[get_email] = override_email
     app.dependency_overrides[get_broker] = override_broker
 
     transport = ASGITransport(app=app)
@@ -215,6 +233,7 @@ def service(db_session, fakes) -> NotificationService:
         presence=fakes.presence,
         event_bus=fakes.event_bus,
         push=fakes.push,
+        email=fakes.email,
     )
 
 

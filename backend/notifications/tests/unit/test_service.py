@@ -67,6 +67,40 @@ async def test_emit_offline_prunes_invalid_tokens(service, fakes, db_session):
     assert remaining == {"good"}
 
 
+EMAIL_EVENT = NotificationEvent(
+    user_id="user-1",
+    type="email_verification",
+    title="Verify your email",
+    body="Click: https://nexchat/verify?token=abc",
+    email="user@example.com",
+)
+
+
+async def test_emit_with_email_sends_to_address(service, fakes):
+    notification = await service.emit(EMAIL_EVENT)
+
+    assert len(fakes.email.sent) == 1
+    address, sent = fakes.email.sent[0]
+    assert address == "user@example.com"
+    assert sent.id == notification.id
+
+
+async def test_emit_without_email_skips_email(service, fakes):
+    await service.emit(EVENT)
+
+    assert fakes.email.sent == []
+
+
+async def test_emit_email_fires_regardless_of_presence(service, fakes):
+    # Email is orthogonal to SSE/FCM: an online user still gets the forced email.
+    fakes.presence.set_online("user-1")
+
+    await service.emit(EMAIL_EVENT)
+
+    assert len(fakes.event_bus.published) == 1
+    assert len(fakes.email.sent) == 1
+
+
 async def test_mark_read_sets_flag(service, db_session):
     notification = await make_notification(db_session, user_id="user-1")
 
