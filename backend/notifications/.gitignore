@@ -1,0 +1,3 @@
+# Firebase / FCM service-account credentials — never commit.
+secrets/
+*serviceAccount*.json
