@@ -24,6 +24,9 @@
 - Any change to `infra/database/models.py` → create Alembic migration in same commit
 - `ws.py` handles only WebSocket protocol — no DB calls directly
 - Secrets never hardcoded — always from `core/config.py` (pydantic-settings)
+- Tests first, always: write the failing test (red) before the implementation,
+  then make it pass (green). Never write implementation first and back-fill
+  tests. See `.claude/TESTING.md` for the full TDD convention.
 
 ## When to update .claude/ docs
 

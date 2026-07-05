@@ -12,6 +12,8 @@ import { fileURLToPath, URL } from "node:url";
 const authTarget = process.env.AUTH_PROXY_TARGET ?? "http://localhost:8000";
 const chatTarget = process.env.CHAT_PROXY_TARGET ?? "http://localhost:8001";
 const wsTarget = process.env.CHAT_WS_TARGET ?? "ws://localhost:8001";
+const notificationsTarget =
+  process.env.NOTIFICATIONS_PROXY_TARGET ?? "http://localhost:8002";
 
 export default defineConfig({
   plugins: [react()],
@@ -42,6 +44,12 @@ export default defineConfig({
       "/ws": {
         target: wsTarget,
         ws: true,
+      },
+      // /api/notifications/events is SSE; http-proxy streams it fine.
+      "/api/notifications": {
+        target: notificationsTarget,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/notifications/, ""),
       },
     },
   },
