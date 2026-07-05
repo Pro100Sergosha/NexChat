@@ -91,16 +91,21 @@ class InMemoryUserRepository(UserRepository):
     async def get_by_email(self, email: str) -> User | None:
         return next((u for u in self._by_id.values() if u.email == email), None)
 
+    async def get_by_username(self, username: str) -> User | None:
+        return next((u for u in self._by_id.values() if u.username == username), None)
+
     async def get_by_id(self, user_id: UUID) -> User | None:
         return self._by_id.get(user_id)
 
-    async def create(self, email: str, hashed_password: str) -> User:
+    async def create(self, email: str, username: str, hashed_password: str) -> User:
         user = User(
             id=uuid4(),
             email=email,
+            username=username,
             hashed_password=hashed_password,
             created_at=datetime.now(UTC),
             email_verified=False,
+            token_version=0,
         )
         return self.seed(user)
 
@@ -109,18 +114,42 @@ class InMemoryUserRepository(UserRepository):
         if user is not None:
             self._by_id[user_id] = replace(user, email_verified=True)
 
+    async def update_username(self, user_id: UUID, username: str) -> None:
+        user = self._by_id.get(user_id)
+        if user is not None:
+            self._by_id[user_id] = replace(user, username=username)
+
+    async def update_password(
+        self, user_id: UUID, hashed_password: str, token_version: int
+    ) -> None:
+        user = self._by_id.get(user_id)
+        if user is not None:
+            self._by_id[user_id] = replace(
+                user,
+                hashed_password=hashed_password,
+                token_version=token_version,
+            )
+
 
 class FakeNotificationPublisher(NotificationPublisher):
-    """Records each verification-email publish so tests can assert on it."""
+    """Records each transactional-email publish so tests can assert on it."""
 
     def __init__(self) -> None:
         self.calls: list[dict[str, str]] = []
+        self.reset_calls: list[dict[str, str]] = []
 
     async def publish_verification(
         self, *, user_id: str, email: str, verify_url: str
     ) -> None:
         self.calls.append(
             {"user_id": user_id, "email": email, "verify_url": verify_url}
+        )
+
+    async def publish_password_reset(
+        self, *, user_id: str, email: str, reset_url: str
+    ) -> None:
+        self.reset_calls.append(
+            {"user_id": user_id, "email": email, "reset_url": reset_url}
         )
 
 
@@ -185,19 +214,24 @@ async def make_user(
     db: AsyncSession,
     *,
     email: str = "user@example.com",
+    username: str | None = None,
     password: str = "password123",
     email_verified: bool = True,
+    token_version: int = 0,
 ) -> tuple[User, str]:
     """Insert a user with a real bcrypt hash; return (user, plaintext_password).
 
     Defaults to verified so login-centric tests aren't blocked by the email gate;
-    pass ``email_verified=False`` to exercise the unverified path.
+    pass ``email_verified=False`` to exercise the unverified path. ``username``
+    defaults to a unique ``user_<hex>`` so callers that don't care never collide.
     """
     orm = UserORM(
         id=uuid4(),
         email=email,
+        username=username or f"user_{uuid4().hex[:8]}",
         hashed_password=PasswordHasher().hash(password),
         email_verified=email_verified,
+        token_version=token_version,
     )
     db.add(orm)
     await db.commit()
@@ -205,9 +239,11 @@ async def make_user(
     user = User(
         id=orm.id,
         email=orm.email,
+        username=orm.username,
         hashed_password=orm.hashed_password,
         created_at=orm.created_at,
         email_verified=orm.email_verified,
+        token_version=orm.token_version,
     )
     return user, password
 

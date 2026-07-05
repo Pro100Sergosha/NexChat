@@ -64,6 +64,12 @@ ERROR_CATALOG = [
         "email_already_verified",
         "Email address has already been verified",
     ),
+    (
+        "UsernameTaken",
+        409,
+        "username_taken",
+        "This username is already taken",
+    ),
 ]
 
 
