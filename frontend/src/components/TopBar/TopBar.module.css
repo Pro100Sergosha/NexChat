@@ -50,6 +50,13 @@
   color: var(--signal);
 }
 
+/* The raw short id, kept alongside the handle for pasting into a new line */
+.youUuid {
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  color: var(--faint);
+}
+
 .logout {
   display: inline-flex;
   align-items: center;

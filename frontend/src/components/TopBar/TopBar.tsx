@@ -5,12 +5,13 @@ import styles from "./TopBar.module.css";
 
 interface Props {
   meId: string;
+  meName: string;
   meEmail: string;
   onLogout: () => void;
 }
 
 /** App header: brand, the caller's own id (for sharing), theme + logout. */
-export function TopBar({ meId, meEmail, onLogout }: Props) {
+export function TopBar({ meId, meName, meEmail, onLogout }: Props) {
   return (
     <header className={styles.bar}>
       <div className={styles.brand}>
@@ -22,9 +23,10 @@ export function TopBar({ meId, meEmail, onLogout }: Props) {
       </div>
 
       <div className={styles.controls}>
-        <div className={styles.you} title={`${meEmail} · ${meId}`}>
+        <div className={styles.you} title={`${meName} · ${meEmail} · ${meId}`}>
           <span className="op-label">You</span>
-          <code className={styles.youId}>{shortId(meId)}</code>
+          <code className={styles.youId}>@{meName}</code>
+          <code className={styles.youUuid}>{shortId(meId)}</code>
         </div>
         <AlertsToggle />
         <ThemeToggle />
