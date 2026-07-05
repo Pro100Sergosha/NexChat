@@ -7,6 +7,7 @@ from app.infra.database.repositories import (
     SqlAlchemyDeviceTokenRepository,
     SqlAlchemyNotificationRepository,
 )
+from app.infra.email.client import SmtpEmailSender
 from app.infra.fcm.client import FirebasePushSender
 from app.infra.redis.config import redis_client
 from app.infra.redis.presence import RedisPresence
@@ -23,6 +24,7 @@ async def process_event(event: NotificationEvent) -> None:
             presence=RedisPresence(redis_client),
             event_bus=RedisEventBus(redis_client),
             push=FirebasePushSender(settings),
+            email=SmtpEmailSender(settings),
         )
         await service.emit(event)
 

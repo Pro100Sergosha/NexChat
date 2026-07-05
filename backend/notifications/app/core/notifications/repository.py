@@ -95,3 +95,14 @@ class PushSender(ABC):
     async def send(
         self, tokens: list[DeviceToken], notification: Notification
     ) -> set[str]: ...
+
+
+class EmailSender(ABC):
+    """Email delivery channel. Sends one notification to a concrete address.
+
+    Used for forced/transactional email (e.g. registration verification), where
+    the recipient address rides the event rather than device registration — so
+    the channel is orthogonal to SSE/FCM presence routing."""
+
+    @abstractmethod
+    async def send(self, address: str, notification: Notification) -> None: ...

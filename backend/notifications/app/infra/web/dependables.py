@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.notifications.exceptions import NotAuthenticated, NotAuthorized
 from app.core.notifications.repository import (
     DeviceTokenRepository,
+    EmailSender,
     EventBus,
     NotificationBroker,
     NotificationRepository,
@@ -51,6 +52,14 @@ def get_push() -> PushSender:
     return FirebasePushSender(settings)
 
 
+def get_email() -> EmailSender:
+    # Lazy import: aiosmtplib is only needed for the real email channel.
+    # Tests inject a FakeEmail and never import it.
+    from app.infra.email.client import SmtpEmailSender
+
+    return SmtpEmailSender(settings)
+
+
 def get_broker() -> NotificationBroker:
     # Lazy import: aio-pika is only needed when actually talking to RabbitMQ.
     from app.infra.broker.broker import RabbitMQBroker
@@ -80,6 +89,7 @@ def get_notification_service(
     presence: Annotated[Presence, Depends(get_presence)],
     event_bus: Annotated[EventBus, Depends(get_event_bus)],
     push: Annotated[PushSender, Depends(get_push)],
+    email: Annotated[EmailSender, Depends(get_email)],
 ) -> NotificationService:
     return NotificationService(
         notifications=notifications,
@@ -87,6 +97,7 @@ def get_notification_service(
         presence=presence,
         event_bus=event_bus,
         push=push,
+        email=email,
     )
 
 

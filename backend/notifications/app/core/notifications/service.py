@@ -8,6 +8,7 @@ from app.core.notifications.exceptions import (
 from app.core.notifications.model import DeviceToken, Notification
 from app.core.notifications.repository import (
     DeviceTokenRepository,
+    EmailSender,
     EventBus,
     NotificationRepository,
     Presence,
@@ -32,12 +33,14 @@ class NotificationService:
         presence: Presence,
         event_bus: EventBus,
         push: PushSender,
+        email: EmailSender,
     ) -> None:
         self._notifications = notifications
         self._device_tokens = device_tokens
         self._presence = presence
         self._event_bus = event_bus
         self._push = push
+        self._email = email
 
     async def emit(self, event: NotificationEvent) -> Notification:
         notification = await self._notifications.create(
@@ -54,6 +57,11 @@ class NotificationService:
             await self._event_bus.publish(event.user_id, payload)
         else:
             await self._push_offline(event.user_id, notification)
+        # Email is orthogonal to presence: a forced address on the event (e.g.
+        # registration verification) is delivered whether or not the user holds
+        # a live SSE socket.
+        if event.email:
+            await self._email.send(event.email, notification)
         return notification
 
     async def _push_offline(self, user_id: str, notification: Notification) -> None:

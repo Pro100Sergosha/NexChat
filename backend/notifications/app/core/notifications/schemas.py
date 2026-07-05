@@ -19,6 +19,10 @@ class NotificationEvent(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1, max_length=2000)
     data: dict[str, Any] = Field(default_factory=dict)
+    # Forced-email recipient. When set, the emit pipeline also delivers over the
+    # email channel to this address (transactional email, e.g. registration
+    # verification). Plain str, not EmailStr — the trusted producer validates it.
+    email: str | None = Field(default=None, max_length=320)
 
 
 class NotificationEmitRequest(BaseModel):
@@ -27,6 +31,7 @@ class NotificationEmitRequest(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1, max_length=2000)
     data: dict[str, Any] = Field(default_factory=dict)
+    email: str | None = Field(default=None, max_length=320)
 
 
 class NotificationResponse(BaseModel):
