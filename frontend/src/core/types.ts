@@ -9,6 +9,14 @@ export interface TokenPair {
 export interface UserResponse {
   id: string; // UUID string — this is the caller's own user id
   email: string;
+  username: string;
+  email_verified: boolean;
+}
+
+// id → display name, resolved via /users/{id} or /users/by-username/{username}.
+export interface PublicUser {
+  id: string;
+  username: string;
 }
 
 export interface ConversationOut {

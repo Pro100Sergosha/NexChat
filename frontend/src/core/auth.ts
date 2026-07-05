@@ -2,15 +2,42 @@ import { API_AUTH, apiFetch, ApiError } from "./api";
 import { clearTokens, getRefresh, setTokens } from "./tokens";
 import type { TokenPair, UserResponse } from "./types";
 
-/** Register a new account, then log in to obtain a token pair. */
-export async function register(email: string, password: string): Promise<void> {
-  await apiFetch<UserResponse>(`${API_AUTH}/register`, {
+/**
+ * Register a new account. The account starts unverified — the backend gates
+ * /login on a confirmed email, so we do NOT log in here. The caller shows a
+ * "check your inbox" screen; the user completes /verify-email from the link.
+ */
+export function register(
+  email: string,
+  username: string,
+  password: string,
+): Promise<UserResponse> {
+  return apiFetch<UserResponse>(`${API_AUTH}/register`, {
     method: "POST",
     auth: false,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, username, password }),
   });
-  await login(email, password);
+}
+
+/** Redeem a single-use verify token from the emailed link → 204. */
+export function verifyEmail(token: string): Promise<void> {
+  return apiFetch<void>(`${API_AUTH}/verify-email`, {
+    method: "POST",
+    auth: false,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+}
+
+/** Re-send the verification email. Always 202 (never reveals if the address exists). */
+export function resendVerification(email: string): Promise<void> {
+  return apiFetch<void>(`${API_AUTH}/resend-verification`, {
+    method: "POST",
+    auth: false,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
 }
 
 /** OAuth2 password form: username carries the email, body is form-encoded. */
