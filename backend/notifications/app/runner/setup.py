@@ -12,8 +12,6 @@ from app.infra.web.router import router
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    # Drain the RabbitMQ queue in the background for the app's lifetime. Import
-    # lazily so importing the app (tests) never pulls in aio-pika.
     from app.runner.consumer import run_consumer
 
     consumer_task = asyncio.create_task(run_consumer())

@@ -31,9 +31,7 @@ async def stream_events(
     sentinel = object()  # keep alive so its id stays a stable connection key
     connection_id = id(sentinel)
     await presence.register(user_id, connection_id)
-    heartbeat = asyncio.create_task(
-        _refresh_presence(user_id, connection_id, presence)
-    )
+    heartbeat = asyncio.create_task(_refresh_presence(user_id, connection_id, presence))
     try:
         async for payload in event_bus.subscribe(user_id):
             yield payload
