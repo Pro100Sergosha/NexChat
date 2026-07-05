@@ -69,3 +69,10 @@ class EmailAlreadyVerified(AppException):
 
     code = "email_already_verified"
     message = "Email address has already been verified"
+
+
+class UsernameTaken(AppException):
+    """Raised when registering or switching to a username already in use."""
+
+    code = "username_taken"
+    message = "This username is already taken"
