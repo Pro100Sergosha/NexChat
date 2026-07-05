@@ -54,12 +54,8 @@ class FirebasePushSender(PushSender):
         return invalid
 
     @staticmethod
-    def _build(
-        device: DeviceToken, notification: Notification
-    ) -> "messaging.Message":
-        notif = messaging.Notification(
-            title=notification.title, body=notification.body
-        )
+    def _build(device: DeviceToken, notification: Notification) -> "messaging.Message":
+        notif = messaging.Notification(title=notification.title, body=notification.body)
         data = {key: str(value) for key, value in notification.data.items()}
         kwargs: dict = {
             "token": device.token,

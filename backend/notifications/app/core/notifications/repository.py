@@ -31,9 +31,7 @@ class NotificationRepository(ABC):
 
 class DeviceTokenRepository(ABC):
     @abstractmethod
-    async def add(
-        self, *, user_id: str, token: str, platform: str
-    ) -> DeviceToken: ...
+    async def add(self, *, user_id: str, token: str, platform: str) -> DeviceToken: ...
 
     @abstractmethod
     async def get_by_token(self, token: str) -> DeviceToken | None: ...

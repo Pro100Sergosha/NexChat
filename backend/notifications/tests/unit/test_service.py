@@ -123,9 +123,7 @@ async def test_mark_read_other_owner_raises(service, db_session):
 
 
 async def test_register_device_is_idempotent(service):
-    first = await service.register_device(
-        user_id="user-1", token="tok", platform="web"
-    )
+    first = await service.register_device(user_id="user-1", token="tok", platform="web")
     second = await service.register_device(
         user_id="user-1", token="tok", platform="web"
     )

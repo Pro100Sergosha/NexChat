@@ -26,12 +26,8 @@ def upgrade() -> None:
         sa.Column("type", sa.String(length=64), nullable=False),
         sa.Column("title", sa.String(length=200), nullable=False),
         sa.Column("body", sa.String(length=2000), nullable=False),
-        sa.Column(
-            "data", sa.JSON(), server_default="{}", nullable=False
-        ),
-        sa.Column(
-            "read", sa.Boolean(), server_default=sa.false(), nullable=False
-        ),
+        sa.Column("data", sa.JSON(), server_default="{}", nullable=False),
+        sa.Column("read", sa.Boolean(), server_default=sa.false(), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -61,9 +57,7 @@ def upgrade() -> None:
     op.create_index(
         "ix_device_tokens_user_id", "device_tokens", ["user_id"], unique=False
     )
-    op.create_index(
-        "ix_device_tokens_token", "device_tokens", ["token"], unique=True
-    )
+    op.create_index("ix_device_tokens_token", "device_tokens", ["token"], unique=True)
 
 
 def downgrade() -> None:
