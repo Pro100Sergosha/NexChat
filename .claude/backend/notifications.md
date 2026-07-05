@@ -1,7 +1,7 @@
 # Notifications Service
 
 Port: 8002
-Framework: FastAPI + SQLAlchemy (async) + Alembic + Redis + RabbitMQ + SSE + FCM
+Framework: FastAPI + SQLAlchemy (async) + Alembic + Redis + RabbitMQ + SSE + FCM + SMTP
 
 Generic layer/style conventions live in `.claude/backend/style.md` — this doc is
 only the notifications-specific design. It mirrors `auth`'s scaffolding (config,
@@ -12,6 +12,9 @@ DB, alembic, exception handler, dependables); copy those idioms, don't re-derive
 - Push events to online users over **SSE** (`text/event-stream`, `GET /events`).
 - Fall back to **Firebase Cloud Messaging** when the user has no live SSE
   connection (offline / backgrounded).
+- Deliver over **email** (SMTP) when an event carries a forced recipient address
+  (`NotificationEvent.email`) — transactional mail (e.g. registration
+  verification), orthogonal to SSE/FCM presence routing.
 - Persist notification history + read-state, and per-user FCM device tokens.
 - Validate the same JWT `auth` issues (shared `JWT_SECRET_KEY`, HS256,
   `sub == user_id`). It never issues tokens — `TokenVerifier` only verifies.
@@ -33,7 +36,8 @@ DB, alembic, exception handler, dependables); copy those idioms, don't re-derive
 the manual `POST /notifications` reaches it by publishing to the same broker
 (never inline). Per event: persist the row → if `presence.is_online` publish to
 the event bus, else FCM-send to the user's device tokens and prune any FCM
-reports unregistered.
+reports unregistered. Then, independently of presence, if the event carries a
+forced `email` address, SMTP-send it there (forced/transactional channel).
 
 ## Key files
 
@@ -42,7 +46,7 @@ reports unregistered.
 | `core/notifications/model.py` | `Notification`, `DeviceToken` domain entities |
 | `core/notifications/schemas.py` | DTOs + `NotificationEvent` (broker wire object) |
 | `core/notifications/service.py` | `emit` pipeline, history, device register/unregister |
-| `core/notifications/repository.py` | Ports: repos + `Presence`/`EventBus`/`NotificationBroker`/`PushSender` |
+| `core/notifications/repository.py` | Ports: repos + `Presence`/`EventBus`/`NotificationBroker`/`PushSender`/`EmailSender` |
 | `core/notifications/security.py` | `TokenVerifier` (copied from chat) |
 | `core/notifications/exceptions.py` | Domain exceptions |
 | `infra/database/models.py` | `NotificationORM`, `DeviceTokenORM` |
@@ -51,6 +55,7 @@ reports unregistered.
 | `infra/redis/pubsub.py` | `RedisEventBus` (per-user pub/sub) |
 | `infra/broker/broker.py` | `RabbitMQBroker` (publish + run_consumer) |
 | `infra/fcm/client.py` | `FirebasePushSender` (creds from `FCM_CREDENTIALS_FILE`, per-platform message, prune) |
+| `infra/email/client.py` | `SmtpEmailSender` (`aiosmtplib`; empty `SMTP_USERNAME`/`SMTP_PASSWORD` = no-op) |
 | `infra/web/router.py` | Routes (see below) |
 | `infra/web/sse.py` | SSE endpoint + `stream_events` generator |
 | `infra/web/dependables.py` | DI; `get_current_user_id` returns the JWT `sub` |
@@ -89,7 +94,10 @@ Required env: `DATABASE_URL`, `REDIS_URL`, `RABBITMQ_URL`, `JWT_SECRET_KEY`.
 Optional: `SERVICE_TOKEN` (trusted-producer secret for `POST /notifications`;
 empty → that HTTP path is disabled, broker stays the only producer route),
 `FCM_CREDENTIALS_FILE` (path to a gitignored service-account JSON file; empty or
-missing → offline push is a no-op), `sse_keepalive_seconds`
+missing → offline push is a no-op), the SMTP block (`SMTP_HOST`/`SMTP_PORT`/
+`SMTP_USE_TLS` default to Gmail submission `smtp.gmail.com:587` STARTTLS;
+`SMTP_USERNAME`/`SMTP_PASSWORD`/`SMTP_FROM` from `.env`; empty credentials →
+email is a no-op; `SMTP_FROM` falls back to the username), `sse_keepalive_seconds`
 (default 15).
 
 `POST /notifications` is authorized by `X-Service-Token`, **not** a user JWT: the
@@ -100,12 +108,21 @@ notifications to any user (IDOR). Only trusted producers hold the token.
 
 Full pyramid under `tests/` (unit/integration/web/api/sse). `FakeBroker` runs the
 pipeline synchronously on publish so an API `POST /notifications` persists + routes
-without real RabbitMQ; `FakePresence`/`FakeEventBus`/`FakePush` stand in for the
-other ports. SSE is tested by driving the `stream_events` generator directly
-(sync streaming over ASGITransport isn't supported).
+without real RabbitMQ; `FakePresence`/`FakeEventBus`/`FakePush`/`FakeEmail` stand
+in for the other ports. `SmtpEmailSender` is tested against a monkeypatched
+`aiosmtplib.send` (`tests/integration/test_smtp_sender.py`). SSE is tested by
+driving the `stream_events` generator directly (sync streaming over ASGITransport
+isn't supported).
 
 ## Follow-ups (not in this service)
 
 - `chat` should publish a `NotificationEvent` to the broker on new message
   (preferred), or call `POST /notifications` with the `X-Service-Token`.
+- `auth` should publish a `NotificationEvent` with a forced `email` (+ verify
+  link in the body) on registration, and own the `email_verified` flag +
+  `POST /verify-email`. The notifications side (forced-email channel) is ready;
+  the auth side is not built yet.
+- Opt-in **email subscription** for regular (non-forced) notifications: a stored
+  per-user address the pipeline sends to when the event has no forced `email`.
+  Deferred — not built yet.
 - Frontend `EventSource` client mirroring `core/ws.ts` (401 refresh-reconnect).
