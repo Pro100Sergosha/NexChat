@@ -184,6 +184,42 @@
   cursor: progress;
 }
 
+.sent {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step-sm);
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.sentAddr {
+  color: var(--signal);
+  word-break: break-all;
+}
+
+/* Understated inline action (resend / back) — reads as a control, not a CTA */
+.linkBtn {
+  align-self: center;
+  margin-top: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  background: transparent;
+  color: var(--brass);
+  font-family: var(--font-mono);
+  font-size: var(--step-xs);
+  letter-spacing: 0.08em;
+  border-radius: var(--radius);
+  transition: color 0.18s var(--ease);
+}
+
+.linkBtn:hover:not(:disabled) {
+  color: var(--cream);
+}
+
+.linkBtn:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
 .readout,
 .readoutError {
   display: flex;

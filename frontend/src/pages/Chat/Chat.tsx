@@ -204,7 +204,12 @@ export function ChatPage() {
 
   return (
     <div className={styles.page}>
-      <TopBar meId={meId} meEmail={user.email} onLogout={() => void signOut()} />
+      <TopBar
+        meId={meId}
+        meName={user.username}
+        meEmail={user.email}
+        onLogout={() => void signOut()}
+      />
 
       <div className={styles.body} data-view={mobileLine ? "line" : "rail"}>
         <LineRail

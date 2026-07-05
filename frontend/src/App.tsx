@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { LoginPage } from "@/pages/Login/Login";
 import { ChatPage } from "@/pages/Chat/Chat";
+import { VerifyEmailPage } from "@/pages/VerifyEmail/VerifyEmail";
+import { ResetPasswordPage } from "@/pages/ResetPassword/ResetPassword";
 import { BootScreen } from "@/components/BootScreen/BootScreen";
 
 export function App() {
@@ -11,6 +13,9 @@ export function App() {
 
   return (
     <Routes>
+      {/* Reached from the emailed links — open to anyone regardless of session. */}
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/login"
         element={phase === "authed" ? <Navigate to="/" replace /> : <LoginPage />}

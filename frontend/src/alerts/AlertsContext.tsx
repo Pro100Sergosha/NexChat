@@ -9,6 +9,7 @@ import {
 } from "react";
 import { playPing, unlockAudio } from "@/core/sound";
 import { requestNotifyPermission, showNotification } from "@/core/desktop";
+import { enablePush } from "@/core/push";
 
 const KEY = "nexchat.alerts";
 
@@ -50,7 +51,11 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(KEY, next ? "on" : "off");
       if (next) {
         unlockAudio();
-        void requestNotifyPermission();
+        // Opting into alerts also opts into background push: prompt, then
+        // register this browser with FCM once permission is granted.
+        void requestNotifyPermission().then((granted) => {
+          if (granted) void enablePush();
+        });
       }
       return next;
     });

@@ -9,6 +9,14 @@ export interface TokenPair {
 export interface UserResponse {
   id: string; // UUID string — this is the caller's own user id
   email: string;
+  username: string;
+  email_verified: boolean;
+}
+
+// id → display name, resolved via /users/{id} or /users/by-username/{username}.
+export interface PublicUser {
+  id: string;
+  username: string;
 }
 
 export interface ConversationOut {
@@ -36,6 +44,26 @@ export interface WSSendMessage {
   content: string;
   recipient_id?: string;
   conversation_id?: number;
+}
+
+// Notifications service — mirror NotificationResponse / DeviceTokenResponse.
+export interface NotificationItem {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  read: boolean;
+  created_at: string;
+}
+
+export type DevicePlatform = "web" | "android" | "ios";
+
+export interface DeviceToken {
+  id: string;
+  token: string;
+  platform: string;
 }
 
 // Every backend error body is { code, message }.
