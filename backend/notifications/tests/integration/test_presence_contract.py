@@ -10,6 +10,7 @@ class StubRedis:
 
     def __init__(self) -> None:
         self.store: dict[str, set[str]] = {}
+        self.ttl: dict[str, int] = {}
 
     def sadd(self, key: str, value: str) -> None:
         self.store.setdefault(key, set()).add(value)
@@ -19,6 +20,9 @@ class StubRedis:
 
     def smembers(self, key: str) -> set[str]:
         return set(self.store.get(key, set()))
+
+    def expire(self, key: str, seconds: int) -> None:
+        self.ttl[key] = seconds
 
 
 async def test_register_uses_namespaced_key():
@@ -50,3 +54,16 @@ async def test_multi_device_keeps_online_until_last_leaves():
     await presence.unregister("user-1", 1)
 
     assert await presence.is_online("user-1") is True
+
+
+async def test_register_sets_ttl_so_stale_entries_self_heal():
+    """Register must set a positive TTL on the key: a crashed/reloaded server
+    that never runs unregister can't pin a user 'online' forever (which would
+    misroute their notifications to a dead SSE socket instead of FCM). An active
+    connection keeps it alive by re-registering (heartbeat)."""
+    stub = StubRedis()
+    presence = RedisPresence(stub)
+
+    await presence.register("user-1", 5)
+
+    assert stub.ttl["notif:online:user-1"] > 0
