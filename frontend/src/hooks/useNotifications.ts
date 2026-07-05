@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAlerts } from "@/alerts/AlertsContext";
 import { listNotifications, markRead as apiMarkRead } from "@/core/notifications";
+import { enablePush } from "@/core/push";
 import { NotifStream, type StreamStatus } from "@/core/notifStream";
 import type { NotificationItem } from "@/core/types";
 
@@ -33,6 +34,10 @@ export function useNotifications(): NotificationsState {
       .catch(() => {
         /* history is best-effort; the stream still delivers live events */
       });
+
+    // Register this browser for offline (background) FCM push — best-effort,
+    // a no-op unless notification permission is already granted.
+    void enablePush();
 
     const stream = new NotifStream({
       onNotification: (n) => {

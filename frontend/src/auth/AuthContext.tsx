@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import * as auth from "@/core/auth";
+import { disablePush } from "@/core/push";
 import { hasSession } from "@/core/tokens";
 import type { UserResponse } from "@/core/types";
 
@@ -60,6 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // Drop the FCM registration while the tokens are still valid (DELETE
+    // /devices needs auth), then revoke the session.
+    await disablePush();
     await auth.logout();
     setUser(null);
     setPhase("anon");
