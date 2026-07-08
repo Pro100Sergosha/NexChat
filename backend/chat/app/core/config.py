@@ -15,5 +15,7 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = 50
     MAX_PAGE_SIZE: int = 100
 
+    LOG_LEVEL: str = "INFO"
+
 
 settings = Settings()
