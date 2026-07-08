@@ -19,6 +19,13 @@ logger = logging.getLogger(__name__)
 
 
 class ChatService:
+    """Chat business logic: 1:1 conversations, message send/history.
+
+    Depends only on repository/publisher ports. Ownership is enforced on every
+    read/write (``has_participant``), and recipient notification is best-effort
+    so a down broker never fails a send.
+    """
+
     def __init__(
         self,
         conversation_repo: ConversationRepository,
@@ -47,6 +54,14 @@ class ChatService:
         recipient_id: str | None = None,
         conversation_id: int | None = None,
     ) -> Message:
+        """Persist a message and best-effort notify the other participant.
+
+        Either ``conversation_id`` (sender must already be a participant, else
+        ``NotParticipant`` / ``ConversationNotFound``) or ``recipient_id`` (the
+        1:1 conversation is resolved or created) must be given. Content is
+        stripped and length-checked. Notification failure never fails the send —
+        the message is already persisted.
+        """
         content = content.strip()
         if not content:
             raise MessageContentEmpty()
@@ -70,6 +85,12 @@ class ChatService:
             conversation_id=conversation.id, sender_id=sender_id, content=content
         )
         await self._notify_recipient(conversation, message)
+        logger.info(
+            "message sent conversation=%s message=%s sender=%s",
+            conversation.id,
+            message.id,
+            sender_id,
+        )
         return message
 
     async def _notify_recipient(
@@ -101,6 +122,13 @@ class ChatService:
     async def get_messages(
         self, *, requester_id: str, conversation_id: int, limit: int, offset: int
     ) -> list[Message]:
+        """Return a conversation's messages, newest-page first.
+
+        A non-participant (or a missing conversation) gets the same
+        ``ConversationNotFound`` — an outsider can't tell an unknown id from
+        one they simply don't belong to (no existence leak). ``limit`` is capped
+        at ``MAX_PAGE_SIZE``.
+        """
         conversation = await self._conversation_repo.get_by_id(conversation_id)
         if conversation is None or not conversation.has_participant(requester_id):
             raise ConversationNotFound()

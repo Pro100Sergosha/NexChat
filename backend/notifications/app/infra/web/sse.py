@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import suppress
 
@@ -8,6 +9,8 @@ from fastapi.responses import Response
 from app.core.config import settings
 from app.core.notifications.repository import EventBus, Presence
 from app.core.notifications.security import TokenVerifier
+
+logger = logging.getLogger(__name__)
 
 # Re-register presence this often to keep its Redis TTL armed while the socket
 # is open. Must stay well under RedisPresence._TTL_SECONDS so a live connection
@@ -31,6 +34,7 @@ async def stream_events(
     sentinel = object()  # keep alive so its id stays a stable connection key
     connection_id = id(sentinel)
     await presence.register(user_id, connection_id)
+    logger.info("sse connected user=%s", user_id)
     heartbeat = asyncio.create_task(_refresh_presence(user_id, connection_id, presence))
     try:
         async for payload in event_bus.subscribe(user_id):
@@ -40,6 +44,7 @@ async def stream_events(
         with suppress(asyncio.CancelledError):
             await heartbeat
         await presence.unregister(user_id, connection_id)
+        logger.info("sse disconnected user=%s", user_id)
 
 
 async def _refresh_presence(

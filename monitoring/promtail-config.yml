@@ -1,0 +1,29 @@
+# Promtail scrapes every container on the docker host and ships logs to Loki.
+# Docker service discovery — no per-service config; new containers are picked
+# up automatically. Labels come from compose metadata so LogQL can filter by
+# service (e.g. {compose_service="auth"}).
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Only NexChat's own containers (compose project name == "nexchat").
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        regex: nexchat
+        action: keep
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: compose_service
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container

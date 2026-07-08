@@ -117,11 +117,11 @@ logger = logging.getLogger(__name__)
 
 ## Comments
 
-- Sparse. Explain *why*, not *what*: rotation semantics, single-use tokens,
-  ack-before-close ordering, cross-instance presence vs. local sockets. A
-  non-obvious ordering constraint gets a real paragraph; obvious code gets none.
-- `# TODO:` for known gaps (rate-limiting, email edge cases) — left in place as
-  a backlog marker, phrased with the intended approach.
+- The *why* behind non-obvious logic (rotation semantics, single-use tokens,
+  ack-before-close ordering, cross-instance presence) belongs in the docstring,
+  not an inline `#` comment. Don't write explanatory comment paragraphs.
+- Inline `#` is for short markers only: `# TODO:` for known gaps (phrased with
+  the intended approach) and `# ponytail:` for a deliberate simplification.
 
 ## Docstrings
 

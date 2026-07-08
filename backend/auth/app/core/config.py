@@ -19,5 +19,7 @@ class Settings(BaseSettings):
     EMAIL_VERIFY_URL_BASE: str = "http://localhost:5173/verify-email"
     EMAIL_RESET_URL_BASE: str = "http://localhost:5173/reset-password"
 
+    LOG_LEVEL: str = "INFO"
+
 
 settings = Settings()

@@ -44,6 +44,14 @@ MAX_RESET_ATTEMPTS = 3
 
 
 class AuthService:
+    """Auth business logic: registration, login, token lifecycle, password/email flows.
+
+    Depends only on repository/security ports (constructor-injected); raises
+    domain exceptions on rule violations. Two invariants recur across methods:
+    login/resend/forgot never reveal whether an account exists (anti-enumeration),
+    and verify/reset tokens are single-use (their jti is blacklisted on redemption).
+    """
+
     def __init__(
         self,
         user_repo: UserRepository,
@@ -80,28 +88,48 @@ class AuthService:
         hashed = self._hasher.hash(password)
         user = await self._users.create(email, username, hashed)
         await self._send_verification(user)
+        logger.info("user registered user=%s username=%s", user.id, username)
         return user
 
     async def login(self, email: str, password: str) -> TokenPair:
+        """Verify credentials and issue a token pair.
+
+        Raises the identical ``InvalidCredentials`` for an unknown email and a
+        wrong password, and only checks ``email_verified`` after the password
+        matched — so neither account existence nor verification state leaks to a
+        caller without the password. ``TooManyAttempts`` once the identity is
+        locked out, ``EmailNotVerified`` for a real-but-unverified account.
+        """
         email = email.strip().lower()
         # Lockout check runs before the DB lookup: a throttled identity costs
         # nothing, and blocking without probing keeps the response identical for
         # existing and unknown emails (no enumeration).
         if await self._rate_limiter.count(email) >= self._max_login_attempts:
+            logger.warning("login failed reason=rate_limited")
             raise TooManyAttempts()
         user = await self._users.get_by_email(email)
         if user is None or not self._hasher.verify(password, user.hashed_password):
             await self._rate_limiter.hit(email)
+            logger.warning("login failed reason=bad_credentials")
             raise InvalidCredentials()
         await self._rate_limiter.reset(email)
         # Verified check runs only after the password matched: a wrong password
         # gets the identical InvalidCredentials for known and unknown emails, so
         # the "not verified" signal never leaks to someone without the password.
         if not user.email_verified:
+            logger.warning("login failed reason=not_verified user=%s", user.id)
             raise EmailNotVerified()
+        logger.info("login succeeded user=%s", user.id)
         return self._issue_pair(str(user.id), user.token_version)
 
     async def verify_email(self, token: str) -> None:
+        """Redeem a single-use verify token, flipping ``email_verified`` on.
+
+        The jti is blacklisted on success so the link can't replay; a spent link
+        or an already-verified account both raise ``EmailAlreadyVerified`` (the
+        idempotent outcome). Bad/expired/wrong-type token raises via ``decode``
+        or ``TokenInvalid``.
+        """
         claims = self._tokens.decode(token)  # raises TokenExpired / TokenInvalid
         if claims.get("type") != VERIFY_TOKEN_TYPE:
             raise TokenInvalid()
@@ -117,6 +145,7 @@ class AuthService:
             raise EmailAlreadyVerified()
         await self._users.set_email_verified(user.id)
         await self._revoke(claims)  # single-use: the link can't be replayed
+        logger.info("email verified user=%s", user.id)
 
     async def resend_verification(self, email: str) -> None:
         email = email.strip().lower()
@@ -162,6 +191,11 @@ class AuthService:
         version = await self._store_password(
             user, new_password, bump_version=logout_other_sessions
         )
+        logger.info(
+            "password changed user=%s logout_other=%s",
+            user_id,
+            logout_other_sessions,
+        )
         return self._issue_pair(str(user_id), version)
 
     async def forgot_password(self, email: str) -> None:
@@ -178,6 +212,13 @@ class AuthService:
         await self._send_password_reset(user)
 
     async def reset_password(self, token: str, new_password: str) -> None:
+        """Redeem a single-use reset token and force a global logout.
+
+        Always bumps ``token_version`` (compromise assumption → every existing
+        session dies) and blacklists the reset jti. A spent link raises
+        ``TokenRevoked``; bad/expired/wrong-type raises via ``decode`` or
+        ``TokenInvalid``.
+        """
         claims = self._tokens.decode(token)  # raises TokenExpired / TokenInvalid
         if claims.get("type") != RESET_TOKEN_TYPE:
             raise TokenInvalid()
@@ -190,6 +231,7 @@ class AuthService:
         # Reset always forces a global logout — the account may be compromised.
         await self._store_password(user, new_password, bump_version=True)
         await self._revoke(claims)  # single-use
+        logger.info("password reset user=%s", user.id)
 
     async def change_username(self, user_id: UUID, username: str) -> User:
         username = username.strip().lower()
@@ -200,6 +242,7 @@ class AuthService:
         user = await self._users.get_by_id(user_id)
         if user is None:
             raise UserNotFound()
+        logger.info("username changed user=%s username=%s", user_id, username)
         return user
 
     async def get_user(self, user_id: UUID) -> User:
@@ -234,6 +277,13 @@ class AuthService:
             logger.warning("password reset email publish failed", exc_info=True)
 
     async def refresh(self, refresh_token: str) -> TokenPair:
+        """Rotate a refresh token into a fresh pair.
+
+        The presented token is single-use: it's blacklisted before the new pair
+        is minted, so a replay hits ``TokenRevoked``. A ``ver`` claim below the
+        user's current ``token_version`` (post password change/reset) is rejected
+        as ``TokenRevoked`` — the global-logout gate.
+        """
         claims = self._tokens.decode(refresh_token)
         if claims.get("type") != REFRESH_TOKEN_TYPE:
             raise TokenInvalid()
@@ -245,6 +295,7 @@ class AuthService:
             raise TokenRevoked()
         version = user.token_version if user is not None else claims.get("ver", 0)
         await self._revoke(claims)  # rotation: invalidate the presented refresh token
+        logger.info("token refreshed user=%s", claims.get("sub"))
         return self._issue_pair(claims["sub"], version)
 
     async def _load_subject(self, claims: dict[str, Any]) -> User | None:
@@ -271,6 +322,7 @@ class AuthService:
             if claims.get("type") != expected_type:
                 raise TokenInvalid()
             await self._revoke(claims)
+        logger.info("logout user=%s", claims.get("sub"))
 
     def _issue_pair(self, user_id: str, token_version: int = 0) -> TokenPair:
         return TokenPair(

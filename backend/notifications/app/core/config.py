@@ -36,5 +36,7 @@ class Settings(BaseSettings):
 
     sse_keepalive_seconds: int = 15
 
+    LOG_LEVEL: str = "INFO"
+
 
 settings = Settings()

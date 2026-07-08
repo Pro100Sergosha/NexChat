@@ -4,6 +4,7 @@ Pins the core delivery decision: online users get a live event-bus publish,
 offline users fall back to FCM (pruning tokens FCM rejects), and ownership is
 enforced on read-state and device unregister (IDOR)."""
 
+import logging
 from uuid import uuid4
 
 import pytest
@@ -20,6 +21,20 @@ from tests.conftest import make_device, make_notification
 EVENT = NotificationEvent(
     user_id="user-1", type="message", title="Hi", body="hello", data={"k": "v"}
 )
+
+_SERVICE_LOGGER = "app.core.notifications.service"
+
+
+async def test_emit_is_logged_without_body(service, fakes, caplog):
+    fakes.presence.set_online("user-1")
+    event = NotificationEvent(
+        user_id="user-1", type="message", title="Hi", body="top-secret-body", data={}
+    )
+    with caplog.at_level(logging.INFO, logger=_SERVICE_LOGGER):
+        await service.emit(event)
+    msgs = [r.getMessage() for r in caplog.records if r.name == _SERVICE_LOGGER]
+    assert any("notification emitted" in m and "user-1" in m for m in msgs)
+    assert "top-secret-body" not in " ".join(msgs)
 
 
 async def test_emit_online_publishes_to_bus(service, fakes):

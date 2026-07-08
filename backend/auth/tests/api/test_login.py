@@ -9,6 +9,8 @@
 * Errors follow {"code", "message"} with a human-readable message.
 """
 
+import logging
+
 from app.core.auth.service import MAX_LOGIN_ATTEMPTS
 from tests.conftest import assert_error, make_user
 
@@ -202,3 +204,36 @@ async def test_login_json_body_rejected(client):
         "/login", json={"username": "login@example.com", "password": password}
     )
     assert_error(resp, 422, "validation_error")
+
+
+# ---------------------------------------------------------------------------
+# logging — success/failure emit an event, never the credential
+# ---------------------------------------------------------------------------
+
+_SERVICE_LOGGER = "app.core.auth.service"
+
+
+async def test_login_success_is_logged_without_password(client, caplog):
+    ac, db, _ = client
+    _, password = await make_user(db, email="log@example.com")
+    with caplog.at_level(logging.INFO, logger=_SERVICE_LOGGER):
+        resp = await ac.post(
+            "/login", data={"username": "log@example.com", "password": password}
+        )
+    assert resp.status_code == 200
+    msgs = [r.getMessage() for r in caplog.records if r.name == _SERVICE_LOGGER]
+    assert any("login" in m for m in msgs)
+    assert password not in " ".join(msgs)
+
+
+async def test_login_failure_is_logged_with_reason(client, caplog):
+    ac, db, _ = client
+    await make_user(db, email="log@example.com", password="password123")
+    with caplog.at_level(logging.WARNING, logger=_SERVICE_LOGGER):
+        resp = await ac.post(
+            "/login", data={"username": "log@example.com", "password": "wrong-password"}
+        )
+    assert resp.status_code == 401
+    msgs = [r.getMessage() for r in caplog.records if r.name == _SERVICE_LOGGER]
+    assert any("bad_credentials" in m for m in msgs)
+    assert "wrong-password" not in " ".join(msgs)
