@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Awaitable, Callable
 
 import aio_pika
@@ -6,6 +7,8 @@ from app.core.config import Settings
 from app.core.notifications.repository import NotificationBroker
 from app.core.notifications.schemas import NotificationEvent
 from app.infra.broker.config import BINDING_KEY, EXCHANGE, QUEUE, ROUTING_KEY
+
+logger = logging.getLogger(__name__)
 
 _EXCHANGE = EXCHANGE
 _QUEUE = QUEUE
@@ -55,6 +58,7 @@ class RabbitMQBroker(NotificationBroker):
             queue = await channel.declare_queue(_QUEUE, durable=True)
             await queue.bind(exchange, routing_key=_BINDING_KEY)
 
+            logger.info("consumer started queue=%s", _QUEUE)
             async with queue.iterator() as messages:
                 async for message in messages:
                     try:
@@ -62,6 +66,9 @@ class RabbitMQBroker(NotificationBroker):
                         await handler(event)
                         await message.ack()
                     except Exception:
+                        logger.error(
+                            "event processing failed, message dropped", exc_info=True
+                        )
                         await message.nack(requeue=False)
         finally:
             await connection.close()

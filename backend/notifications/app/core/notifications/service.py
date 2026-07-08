@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 from app.core.notifications.exceptions import (
@@ -15,6 +16,8 @@ from app.core.notifications.repository import (
     PushSender,
 )
 from app.core.notifications.schemas import NotificationEvent, NotificationResponse
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationService:
@@ -43,6 +46,13 @@ class NotificationService:
         self._email = email
 
     async def emit(self, event: NotificationEvent) -> Notification:
+        """Persist a notification and route it to the user.
+
+        Online users get a live event-bus publish; offline users fall back to
+        FCM. Email is orthogonal to presence — a forced address on the event
+        (e.g. registration verification) is delivered whether or not the user
+        holds a live SSE socket.
+        """
         notification = await self._notifications.create(
             user_id=event.user_id,
             type=event.type,
@@ -50,18 +60,23 @@ class NotificationService:
             body=event.body,
             data=event.data,
         )
-        if await self._presence.is_online(event.user_id):
+        online = await self._presence.is_online(event.user_id)
+        if online:
             payload = NotificationResponse.model_validate(
                 notification
             ).model_dump_json()
             await self._event_bus.publish(event.user_id, payload)
         else:
             await self._push_offline(event.user_id, notification)
-        # Email is orthogonal to presence: a forced address on the event (e.g.
-        # registration verification) is delivered whether or not the user holds
-        # a live SSE socket.
         if event.email:
             await self._email.send(event.email, notification)
+        logger.info(
+            "notification emitted user=%s type=%s online=%s emailed=%s",
+            event.user_id,
+            event.type,
+            online,
+            bool(event.email),
+        )
         return notification
 
     async def _push_offline(self, user_id: str, notification: Notification) -> None:
