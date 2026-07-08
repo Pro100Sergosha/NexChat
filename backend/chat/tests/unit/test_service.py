@@ -27,10 +27,11 @@ def _conversation(
     )
 
 
-def _service(conversation_repo=None, message_repo=None) -> ChatService:
+def _service(conversation_repo=None, message_repo=None, publisher=None) -> ChatService:
     return ChatService(
         conversation_repo=conversation_repo or AsyncMock(),
         message_repo=message_repo or AsyncMock(),
+        publisher=publisher or AsyncMock(),
     )
 
 

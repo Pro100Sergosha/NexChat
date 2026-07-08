@@ -62,7 +62,6 @@ class RabbitMQBroker(NotificationBroker):
                         await handler(event)
                         await message.ack()
                     except Exception:
-                        # Don't infinite-requeue a poison message; drop it.
                         await message.nack(requeue=False)
         finally:
             await connection.close()

@@ -85,6 +85,36 @@ match this without reading existing files for reference. Layer boundaries live i
   no default (`DATABASE_URL: str`); tunables get defaults. Never read `os.environ`
   directly, never hardcode secrets.
 
+## Logging
+
+Every service uses the stdlib `logging` module — no `print`, no structlog, no
+custom logger class. One logger per module, declared at the top under the imports:
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+```
+
+- **Where**: services (`core/*/service.py`), infra adapters (broker, redis, fcm,
+  email), and the app factory / consumer (`runner/`). Pure domain (`model.py`,
+  `schemas.py`, `exceptions.py`, `repository.py` interfaces) stays log-free.
+- **Levels**: `debug` for flow detail off by default; `info` for lifecycle
+  milestones (startup/shutdown, consumer connected, one line per delivered event);
+  `warning` for best-effort failures the caller recovers from (a down broker on a
+  best-effort publish — pass `exc_info=True`); `error` for a swallowed exception
+  that lost data or work; never log-and-reraise (the exception handler already
+  renders it). Raising a domain exception is not a log event.
+- **Messages**: short lowercase event phrases, not sentences —
+  `logger.warning("verification email publish failed", exc_info=True)`. Pass
+  variables as args (`logger.info("event delivered user=%s", user_id)`), never
+  f-string the logger call.
+- **Never** log secrets, raw tokens, passwords, JWTs, or full email addresses.
+  Log a `user_id` / `jti`, not the credential. This is a hard rule, same tier as
+  "secrets never hardcoded".
+- The runner configures the root logger (level from config, e.g. a `LOG_LEVEL`
+  tunable) once at startup; modules only ever `getLogger(__name__)`.
+
 ## Comments
 
 - Sparse. Explain *why*, not *what*: rotation semantics, single-use tokens,
@@ -92,3 +122,20 @@ match this without reading existing files for reference. Layer boundaries live i
   non-obvious ordering constraint gets a real paragraph; obvious code gets none.
 - `# TODO:` for known gaps (rate-limiting, email edge cases) — left in place as
   a backlog marker, phrased with the intended approach.
+
+## Docstrings
+
+- Trivial code (thin handlers, one-line repo lookups, obvious CRUD) needs no
+  docstring — a good name is enough. Don't restate the signature in prose.
+- A **complex or non-obvious** function gets a short docstring: any multi-step
+  pipeline (`emit`), anything with a subtle ordering constraint (ack-before-close,
+  persist-then-publish), a security-sensitive path (token mint/verify, presence
+  routing), or logic whose *why* isn't visible from the body. State the contract
+  and the invariant, not a line-by-line walkthrough.
+- **Progressive documentation** — a standing task for every session: when you
+  read or edit a complex function that lacks a docstring, add one as part of the
+  change. This is expected upkeep, not scope creep; the codebase's docstring
+  coverage should only ever go up.
+- One-line `"""..."""` for a small clarification; a `"""` block with a blank line
+  after the summary for anything needing an invariant/argument note. English,
+  present tense, same register as the surrounding code.

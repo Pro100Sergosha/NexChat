@@ -5,6 +5,14 @@ from app.infra.redis._util import resolve
 
 _KEY_PREFIX = "notif:online:"
 
+# Presence self-heals: without a heartbeat refresh (see sse.stream_events) an
+# entry outlives its connection by at most this long. A crashed/reloaded server
+# — where the SSE `finally` never ran unregister — therefore can't pin a user
+# "online" forever and misroute their notifications to a dead socket instead of
+# FCM. Must stay comfortably above the heartbeat interval or a live connection
+# would flicker offline between refreshes.
+_TTL_SECONDS = 30
+
 
 class RedisPresence(Presence):
     """SSE connection registry: which users are online and how many sockets
@@ -18,7 +26,11 @@ class RedisPresence(Presence):
         return f"{_KEY_PREFIX}{user_id}"
 
     async def register(self, user_id: str, connection_id: int) -> None:
-        await resolve(self._client.sadd(self._key(user_id), str(connection_id)))
+        key = self._key(user_id)
+        await resolve(self._client.sadd(key, str(connection_id)))
+        # (Re)arm the TTL on every register — the SSE heartbeat re-registers to
+        # keep an active user online; the key expires once refreshes stop.
+        await resolve(self._client.expire(key, _TTL_SECONDS))
 
     async def unregister(self, user_id: str, connection_id: int) -> None:
         await resolve(self._client.srem(self._key(user_id), str(connection_id)))

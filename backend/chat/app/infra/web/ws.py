@@ -14,6 +14,7 @@ from app.core.chat.exceptions import (
     TokenExpired,
     TokenInvalid,
 )
+from app.core.chat.repository import NotificationPublisher
 from app.core.chat.schemas import MessageOut, WSSendMessage
 from app.core.chat.security import TokenVerifier
 from app.core.chat.service import ChatService
@@ -22,7 +23,12 @@ from app.infra.database.repositories import (
     SqlAlchemyMessageRepository,
 )
 from app.infra.redis.connection_manager import ConnectionManager
-from app.infra.web.dependables import get_connection_manager, get_db, get_token_verifier
+from app.infra.web.dependables import (
+    get_connection_manager,
+    get_db,
+    get_notification_publisher,
+    get_token_verifier,
+)
 
 router = APIRouter()
 
@@ -38,6 +44,7 @@ async def ws_endpoint(
     db: Annotated[AsyncSession, Depends(get_db)],
     connection_manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
     verifier: Annotated[TokenVerifier, Depends(get_token_verifier)],
+    publisher: Annotated[NotificationPublisher, Depends(get_notification_publisher)],
 ) -> None:
     token = websocket.query_params.get("token") or ""
     try:
@@ -55,6 +62,7 @@ async def ws_endpoint(
     service = ChatService(
         conversation_repo=conversation_repo,
         message_repo=SqlAlchemyMessageRepository(db),
+        publisher=publisher,
     )
 
     try:
