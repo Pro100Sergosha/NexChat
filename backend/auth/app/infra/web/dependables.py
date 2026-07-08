@@ -96,6 +96,12 @@ async def get_current_user(
     blacklist: Annotated[TokenBlacklistRepository, Depends(get_blacklist)],
     user_repo: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> User:
+    """Resolve the bearer access token to its User, or raise 401.
+
+    Rejects a non-access token type, a blacklisted jti, an unknown subject, and
+    a ``ver`` claim that no longer matches the user's ``token_version`` (global
+    logout after a password change/reset).
+    """
     claims = tokens.decode(token)  # raises TokenExpired / TokenInvalid
     if claims.get("type") != ACCESS_TOKEN_TYPE:
         raise TokenInvalid()

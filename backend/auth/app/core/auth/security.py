@@ -35,6 +35,14 @@ class PasswordHasher:
 
 
 class TokenService:
+    """Mint and verify the four JWT types (access/refresh/verify/reset).
+
+    Every token carries a ``type`` and a unique ``jti``; access/refresh also
+    carry a ``ver`` (the user's ``token_version`` at mint time) for global
+    logout. Callers must check ``type`` themselves — ``decode`` only validates
+    signature and expiry, mapping failures to ``TokenExpired`` / ``TokenInvalid``.
+    """
+
     def __init__(self, settings: Settings) -> None:
         self._secret = settings.JWT_SECRET_KEY
         self._algorithm = settings.jwt_algorithm
