@@ -53,9 +53,13 @@ frontend/
 
 - `POST /api/auth/register|login|refresh|logout`, `GET /api/auth/me`
 - `GET /api/chat/conversations`, `GET /api/chat/messages/{id}`
-- `WS /ws?token=<access>` — client sends `{content, conversation_id|recipient_id}`,
-  server echoes/broadcasts `MessageOut`. Close codes: 4401 auth, 4403 not
-  participant, 4422 bad frame.
+- `POST /api/chat/conversations` — create a group `{name, participant_ids[]}`;
+  `POST|DELETE /api/chat/conversations/{id}/participants` (owner only),
+  `POST /api/chat/conversations/{id}/leave`.
+- `WS /ws?token=<access>` — client sends `{content, conversation_id|recipient_id}`
+  (`recipient_id` is 1:1 only; groups are always addressed by `conversation_id`),
+  server echoes/broadcasts `MessageOut` to every participant. Close codes: 4401
+  auth, 4403 not participant, 4422 bad frame.
 
 ## Design — "Exchange"
 
@@ -70,7 +74,12 @@ chat pills. IBM Plex Mono (data/labels) + IBM Plex Sans (message body).
 
 - No user directory in the backend → "new line" = paste the other party's UUID;
   we surface the caller's own id (from `/me`) for sharing. Don't invent search.
-- Conversations are strictly 1:1 — don't build group-chat affordances.
+- Conversations are 1:1 **or group**. A group is created with a name + a list of
+  pasted participant UUIDs (same no-directory constraint — paste ids, no search).
+  Only the group's `owner_id` may add/remove participants or rename; any member
+  may leave. 1:1 lines have no name and no membership controls — render them as
+  before; group affordances (name, member list, add/leave) appear only when
+  `is_group`.
 - Keep design tokens in `tokens.css`; components consume CSS vars, never
   hardcode palette hexes in `*.module.css`.
 - Any new WS close code or error `code` must be mirrored in `core/types.ts`.

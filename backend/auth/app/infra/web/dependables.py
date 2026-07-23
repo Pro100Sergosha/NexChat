@@ -73,9 +73,6 @@ def get_auth_service(
     )
 
 
-# Wired only so Swagger UI renders the "Authorize" button with a password-flow
-# login form (posts to tokenUrl, fills the token in automatically). Actual
-# token extraction/validation is done by get_access_token below.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
 
 
