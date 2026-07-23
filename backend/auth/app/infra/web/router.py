@@ -28,7 +28,6 @@ from app.infra.web.dependables import (
     oauth2_scheme,
 )
 
-# Routes are mounted at the root; Nginx proxies /api/auth/* and strips the prefix.
 router = APIRouter(tags=["auth"])
 
 ServiceDep = Annotated[AuthService, Depends(get_auth_service)]
@@ -62,7 +61,6 @@ async def resend_verification(
     request: ResendVerificationRequest, service: ServiceDep
 ) -> Response:
     await handler.resend_verification(request, service)
-    # 202 with an empty body — never reveal whether the address existed.
     return Response(status_code=status.HTTP_202_ACCEPTED)
 
 
@@ -80,7 +78,6 @@ async def forgot_password(
     request: ForgotPasswordRequest, service: ServiceDep
 ) -> Response:
     await handler.forgot_password(request, service)
-    # 202 with an empty body — never reveal whether the address existed.
     return Response(status_code=status.HTTP_202_ACCEPTED)
 
 

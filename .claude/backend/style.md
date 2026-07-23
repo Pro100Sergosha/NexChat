@@ -8,8 +8,8 @@ match this without reading existing files for reference. Layer boundaries live i
 
 - Python `>=3.12`, managed with `uv` (`pyproject.toml` per service, `dev`
   dependency-group for pytest/ruff).
-- Ruff is the only linter/formatter. `target-version = "py312"`, `line-length = 88`.
-- Lint select: `["E", "F", "W", "I", "N", "UP", "B", "SIM", "TCH"]`, `ignore = ["B008"]`
+- Ruff is the only linter/formatter. `target-version = "py312"`. No line length limit (`E501` ignored).
+- Lint select: `["E", "F", "W", "I", "N", "UP", "B", "SIM", "TCH"]`, `ignore = ["B008", "E501"]`
   (B008 off because FastAPI `Depends()` in defaults is intentional).
 - isort: `known-first-party = ["app"]`. Imports are always absolute (`from app.core...`),
   never relative. Grouped stdlib / third-party / `app.*`, sorted.
