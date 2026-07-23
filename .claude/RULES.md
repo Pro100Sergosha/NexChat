@@ -33,6 +33,8 @@
 - Any non-obvious function gets a docstring explaining *why* / the invariant —
   see the Docstrings section in `.claude/backend/style.md`. When you touch a
   complex function that lacks one, add it as part of the change.
+- Always run the linter (`rtk uv run ruff check .` / `rtk uv run ruff format .`) after modifying code to ensure compliance.
+- Always prefix all shell/terminal/CLI commands with `rtk` (e.g. `rtk git ...`, `rtk uv ...`, `rtk pytest ...`).
 
 ## Delegating complex work to agents
 
